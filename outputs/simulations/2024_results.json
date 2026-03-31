@@ -1,0 +1,15 @@
+{
+    "year": 2024,
+    "n_simulations": 100,
+    "win_probabilities": {
+        "Max Verstappen": 0.89,
+        "Lando Norris": 0.08,
+        "Charles Leclerc": 0.03
+    },
+    "champion_counts": {
+        "Max Verstappen": 89,
+        "Lando Norris": 8,
+        "Charles Leclerc": 3
+    },
+    "csi": 0.10999999999999999
+}
