@@ -1,0 +1,11 @@
+{
+    "year": 2023,
+    "n_simulations": 100,
+    "win_probabilities": {
+        "Max Verstappen": 1.0
+    },
+    "champion_counts": {
+        "Max Verstappen": 100
+    },
+    "csi": 0.0
+}

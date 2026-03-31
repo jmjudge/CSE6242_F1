@@ -1,0 +1,13 @@
+{
+    "year": 2016,
+    "n_simulations": 100,
+    "win_probabilities": {
+        "Nico Rosberg": 0.57,
+        "Lewis Hamilton": 0.43
+    },
+    "champion_counts": {
+        "Nico Rosberg": 57,
+        "Lewis Hamilton": 43
+    },
+    "csi": 0.43000000000000005
+}
