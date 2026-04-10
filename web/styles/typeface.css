@@ -1,0 +1,24 @@
+h1 {
+    color: var(--primary-btn-color);
+    font-size: var(--h1-font-size)/*2rem;*/;
+    font-weight: var(--h1-weight);
+}
+h2 {
+    font-size: 1.5rem;
+    font-weight: var(--h2-weight);
+}
+.heading {
+  font-family: var(--heading-font-family);
+}
+.content {
+  font-family: var(--body-font-family);
+  font-size: var(--body-font-size);
+  line-height: 1.6;
+}
+p {
+    display: block;
+    margin-block-start: 1em;
+    margin-block-end: 1em;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
+}

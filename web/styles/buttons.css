@@ -1,0 +1,150 @@
+.button-text {
+  text-decoration: none;
+  font-family: var(--btn-font-family);
+  text-transform: uppercase;
+  letter-spacing: 0.095rem;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.button-std-rounded {
+  display: block;
+  background-color: none;
+  border: 3px solid black;
+  border-radius: 50px;
+  padding: 4px 22px;
+  width: fit-content;
+  min-width: 150px;
+}
+
+.button-secondary {
+  border-color: var(--primary-btn-color);
+  color: var(--primary-btn-color);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.button-secondary:hover {
+  color: white;
+  border-color: var(--secondary-btn-color);
+  background-color: var(--secondary-btn-color);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.right-arrow-button {
+  position: relative;
+  display: inline-block;
+  padding-right: 40px; /* extra space for arrow movement */
+}
+
+.right-arrow-icon {
+  position: absolute;
+  right: 16px;          /* starting position */
+  top: 50%;
+  transform: translateY(-50%);
+  transition: transform 0.15s ease;
+  font-size: 14px;
+}
+
+.right-arrow-button:hover .right-arrow-icon {
+  transform: translate(6px, -50%); /* glide right */
+}
+
+.button-primary {
+  border-color: var(--primary-btn-color);
+  background-color: var(--primary-btn-color);
+  color: white;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.button-primary:hover {
+  border-color: var(--secondary-btn-color);
+  background-color: var(--secondary-btn-color);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.button-text-only {
+  color: var(--primary-btn-color);
+  transition: color 0.15s ease;
+}
+
+.button-text-only:hover {
+  color: var(--secondary-btn-color);
+  transition: color 0.15s ease;
+}
+
+.horizontal-divider {
+  position: relative;
+  width: 100%;        /* full width */
+  height: 20px;       /* enough to hold button */
+  margin: 36px 0;
+  display: flex;
+  justify-content: center; /* center the button horizontally */
+  align-items: center;     /* vertical center */
+}
+
+.horizontal-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;          /* middle of container vertically */
+  left: 0;
+  right: 0;
+  height: 3px;       /* thickness of line */
+  background-image: linear-gradient(
+    to right,
+    var(--secondary-btn-color, black) 0 50%,
+    transparent 50% 100%
+  );
+  background-repeat: repeat-x;
+  background-size: 20px 3px; /* dash width and spacing */
+  border-radius: 2px;
+  transform: translateY(-50%); /* center the line exactly behind button */
+  z-index: 0;        /* line is behind button */
+}
+
+.divider-button {
+  z-index: 1;        /* button above line */
+  position: relative;
+  border-color: var(--secondary-btn-color);
+  color: var(--secondary-btn-color);
+  background-color: var(--background-card-color) !important;
+}
+
+.divider-button:hover {
+  z-index: 1;        /* button above line */
+  position: relative;
+  background-color: var(--secondary-btn-color) !important;
+}
+
+
+
+
+.race-card {
+    position: relative;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+
+    /* smooth appearance */
+    opacity: 0;
+    transform: translateY(-10px);
+    animation: slideIn 0.15s ease forwards;
+}
+
+@keyframes slideIn {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.close-btn {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    border: none;
+    background: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+}

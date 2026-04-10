@@ -1,0 +1,13 @@
+{
+    "year": 2021,
+    "n_simulations": 100,
+    "win_probabilities": {
+        "Lewis Hamilton": 0.57,
+        "Max Verstappen": 0.43
+    },
+    "champion_counts": {
+        "Lewis Hamilton": 57,
+        "Max Verstappen": 43
+    },
+    "csi": 0.43000000000000005
+}

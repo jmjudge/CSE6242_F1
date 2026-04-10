@@ -1,0 +1,11 @@
+{
+    "year": 2020,
+    "n_simulations": 100,
+    "win_probabilities": {
+        "Lewis Hamilton": 1.0
+    },
+    "champion_counts": {
+        "Lewis Hamilton": 100
+    },
+    "csi": 0.0
+}

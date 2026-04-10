@@ -1,0 +1,79 @@
+[
+    {
+        "year": 2014,
+        "csi": 0.21999999999999997,
+        "top_driver": "Lewis Hamilton",
+        "top_driver_prob": 0.78,
+        "num_contenders": 2
+    },
+    {
+        "year": 2015,
+        "csi": 0.12,
+        "top_driver": "Lewis Hamilton",
+        "top_driver_prob": 0.88,
+        "num_contenders": 2
+    },
+    {
+        "year": 2016,
+        "csi": 0.43000000000000005,
+        "top_driver": "Nico Rosberg",
+        "top_driver_prob": 0.57,
+        "num_contenders": 2
+    },
+    {
+        "year": 2017,
+        "csi": 0.16000000000000003,
+        "top_driver": "Lewis Hamilton",
+        "top_driver_prob": 0.84,
+        "num_contenders": 3
+    },
+    {
+        "year": 2018,
+        "csi": 0.050000000000000044,
+        "top_driver": "Lewis Hamilton",
+        "top_driver_prob": 0.95,
+        "num_contenders": 2
+    },
+    {
+        "year": 2019,
+        "csi": 0.050000000000000044,
+        "top_driver": "Lewis Hamilton",
+        "top_driver_prob": 0.95,
+        "num_contenders": 2
+    },
+    {
+        "year": 2020,
+        "csi": 0.0,
+        "top_driver": "Lewis Hamilton",
+        "top_driver_prob": 1.0,
+        "num_contenders": 1
+    },
+    {
+        "year": 2021,
+        "csi": 0.43000000000000005,
+        "top_driver": "Lewis Hamilton",
+        "top_driver_prob": 0.57,
+        "num_contenders": 2
+    },
+    {
+        "year": 2022,
+        "csi": 0.0,
+        "top_driver": "Max Verstappen",
+        "top_driver_prob": 1.0,
+        "num_contenders": 1
+    },
+    {
+        "year": 2023,
+        "csi": 0.0,
+        "top_driver": "Max Verstappen",
+        "top_driver_prob": 1.0,
+        "num_contenders": 1
+    },
+    {
+        "year": 2024,
+        "csi": 0.10999999999999999,
+        "top_driver": "Max Verstappen",
+        "top_driver_prob": 0.89,
+        "num_contenders": 3
+    }
+]

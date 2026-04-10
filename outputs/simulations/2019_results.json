@@ -1,0 +1,13 @@
+{
+    "year": 2019,
+    "n_simulations": 100,
+    "win_probabilities": {
+        "Lewis Hamilton": 0.95,
+        "Valtteri Bottas": 0.05
+    },
+    "champion_counts": {
+        "Lewis Hamilton": 95,
+        "Valtteri Bottas": 5
+    },
+    "csi": 0.050000000000000044
+}

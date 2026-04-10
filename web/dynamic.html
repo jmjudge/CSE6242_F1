@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<!-- <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500&amp;family=Manrope:wght@500;800&amp;family=Prompt&amp;family=EB+Garamond:ital@0;1&amp;family=Outfit:wght@600&amp;display=swap" rel="stylesheet"> -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Onest:wght@100..900&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+<link rel="stylesheet" href="styles/variables.css">
+<link rel="stylesheet" href="styles/layout.css">
+<link rel="stylesheet" href="styles/typeface.css">
+<link rel="stylesheet" href="styles/buttons.css">
+<style>
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+</style>
+</head>
+<body>
+
+<div class="main-grid-container"><div></div>
+
+<main>
+
+<div style="margin-top: 3rem;">
+<a class="button-text button-text-only" href="index.html"><i class="fa-solid fa-angle-left"></i> Back</a>
+</div>
+
+<div class="wrapper-card">
+<div class="title-container">
+	<h1 class="heading">What if...?</h1>
+</div>
+
+<div class="content">
+	<p>Have you ever wondered how things would change if the racers made different choices?  With our simulations, we bring that power to you.  
+        Simply specify a race and adjust your parameters to the desired settings.  Then, we'll re-run that race thousands of times using a Monte-Carlo simulator to see 
+        just how drastically a race can change.  You can add up to 3 races.
+    </p>
+
+    <div id="raceSection">
+        <div id="raceContainer"></div>
+
+        <div id="addRaceHorizonalDiv" class="horizontal-divider">
+            <a id="addRaceBtn" class="button-text button-std-rounded button-secondary divider-button" href="#"><i class="fa-solid fa-plus"></i> Add race</a>
+        </div>
+    </div>
+
+    <!-- <p> Our tool analyzes how random race events (mechanical failures, crashes, penalties, etc.) affect Formula 1 championship outcomes. 
+        Using 75 years of historical race data, we simulate seasons under counterfactual and probabilistic scenarios to recompute standings race by race. 
+        By running thousands of simulations, we estimate how often championship results would have changed and produce a quantitative measure of how stable or fragile each title truly was.
+    </p> -->
+    <br/>
+
+</div>
+
+</div></main>
+
+<div></div></div>
+
+
+<script>
+const addBtn = document.getElementById("addRaceBtn");
+const container = document.getElementById("raceContainer");
+const horizontalDivider = document.getElementById("addRaceHorizonalDiv");
+
+const MAX_RACES = 3;
+
+// Create a race card
+function createRaceCard() {
+    const div = document.createElement("div");
+    div.classList.add("race-card");
+
+    div.innerHTML = `
+        <button class="close-btn">&times;</button>
+        <p>Race configuration</p>
+    `;
+
+    // remove logic
+    div.querySelector(".close-btn").addEventListener("click", () => {
+        div.remove();
+        syncState();
+    });
+
+    return div;
+}
+
+// Ensure one exists on load
+window.addEventListener("DOMContentLoaded", () => {
+    container.appendChild(createRaceCard());
+    syncState();
+});
+
+addBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+
+    if (container.children.length >= MAX_RACES) return;
+
+    container.appendChild(createRaceCard());
+    syncState();
+});
+
+// Core logic: enforce rules
+function syncState() {
+    const cards = container.querySelectorAll(".race-card");
+
+    // Toggle add button
+    addBtn.style.display =
+        cards.length >= MAX_RACES ? "none" : "inline-block";
+    horizontalDivider.style.display = 
+        container.children.length >= MAX_RACES ? "none" : "flex";
+
+    // Handle "x" buttons
+    cards.forEach((card) => {
+        let btn = card.querySelector(".close-btn");
+
+        if (cards.length === 1) {
+            // remove button if only one card
+            if (btn) btn.remove();
+        } else {
+            // ensure button exists if multiple cards
+            if (!btn) {
+                btn = document.createElement("button");
+                btn.className = "close-btn";
+                btn.innerHTML = "&times;";
+                card.appendChild(btn);
+
+                btn.addEventListener("click", () => {
+                    card.remove();
+                    syncState();
+                });
+            }
+        }
+    });
+}
+</script>
+
+</body>
+</html>

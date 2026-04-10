@@ -1,0 +1,15 @@
+{
+    "year": 2017,
+    "n_simulations": 100,
+    "win_probabilities": {
+        "Lewis Hamilton": 0.84,
+        "Sebastian Vettel": 0.09,
+        "Valtteri Bottas": 0.07
+    },
+    "champion_counts": {
+        "Lewis Hamilton": 84,
+        "Sebastian Vettel": 9,
+        "Valtteri Bottas": 7
+    },
+    "csi": 0.16000000000000003
+}
