@@ -6,10 +6,10 @@
 <!-- <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500&amp;family=Manrope:wght@500;800&amp;family=Prompt&amp;family=EB+Garamond:ital@0;1&amp;family=Outfit:wght@600&amp;display=swap" rel="stylesheet"> -->
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Onest:wght@100..900&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
-<link rel="stylesheet" href="styles/variables.css">
-<link rel="stylesheet" href="styles/layout.css">
-<link rel="stylesheet" href="styles/typeface.css">
-<link rel="stylesheet" href="styles/buttons.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='variables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='layout.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='typeface.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='buttons.css') }}">
 <style>
 *, *::before, *::after {
   box-sizing: border-box;
@@ -23,7 +23,7 @@
 <main>
 
 <div style="margin-top: 3rem;">
-<a class="button-text button-text-only" href="index.html"><i class="fa-solid fa-angle-left"></i> Back</a>
+<a class="button-text button-text-only" href="{{ url_for('index') }}"><i class="fa-solid fa-angle-left"></i> Back</a>
 </div>
 
 <div class="wrapper-card">
@@ -45,15 +45,17 @@
         </div>
     </div>
 
-    <!-- <p> Our tool analyzes how random race events (mechanical failures, crashes, penalties, etc.) affect Formula 1 championship outcomes. 
-        Using 75 years of historical race data, we simulate seasons under counterfactual and probabilistic scenarios to recompute standings race by race. 
-        By running thousands of simulations, we estimate how often championship results would have changed and produce a quantitative measure of how stable or fragile each title truly was.
-    </p> -->
     <br/>
 
 </div>
 
-</div></main>
+</div>
+
+<!-- <div class="wrapper-card copyright-disclaimer-wrapper">
+    <span class="content copyright-disclaimer-text">Team 75 &bull; CSE 6242 &bull; Spring 2026</span>
+</div> -->
+
+</main>
 
 <div></div></div>
 

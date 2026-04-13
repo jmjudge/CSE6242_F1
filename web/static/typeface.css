@@ -22,3 +22,15 @@ p {
     margin-inline-start: 0px;
     margin-inline-end: 0px;
 }
+.copyright-disclaimer-wrapper {
+  background-color: white;
+  border: none;
+  margin: 0;
+  text-align: center;
+  padding: 25px;
+}
+.copyright-disclaimer-text {
+  text-align: center;
+  font-size: 12px;
+  color: #aeaeae;
+}

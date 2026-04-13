@@ -6,10 +6,10 @@
 <!-- <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500&amp;family=Manrope:wght@500;800&amp;family=Prompt&amp;family=EB+Garamond:ital@0;1&amp;family=Outfit:wght@600&amp;display=swap" rel="stylesheet"> -->
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Onest:wght@100..900&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
-<link rel="stylesheet" href="styles/variables.css">
-<link rel="stylesheet" href="styles/layout.css">
-<link rel="stylesheet" href="styles/typeface.css">
-<link rel="stylesheet" href="styles/buttons.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='variables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='layout.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='typeface.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='buttons.css') }}">
 <style>
 *, *::before, *::after {
   box-sizing: border-box;
@@ -21,7 +21,7 @@
 <div class="main-grid-container">
 <div></div>
 
-<main class="wrapper-card">
+<main><div class="wrapper-card">
 <div class="title-container">
 	<h1 class="heading" style="text-align: center;">Hello!</h1>
 </div>
@@ -38,9 +38,23 @@
         By running thousands of simulations, we estimate how often championship results would have changed and produce a quantitative measure of how stable or fragile each title truly was.
     </p>
     <br/>
-    <a class="button-text button-text-only right-arrow-button" href="static.html">View F1 race statistics<i class="fa-solid fa-angle-right right-arrow-icon"></i></a>
-    <a class="button-std-rounded button-text button-primary right-arrow-button" style="float: right;" href="dynamic.html">Rewrite F1 History<i class="fa-solid fa-angle-right right-arrow-icon"></i></a>
+    <a class="button-text button-text-only right-arrow-button" href="{{ url_for('static_page') }}">View F1 race statistics<i class="fa-solid fa-angle-right right-arrow-icon"></i></a>
+    <a class="button-std-rounded button-text button-primary right-arrow-button" style="float: right;" href="{{ url_for('dynamic') }}">Rewrite F1 History<i class="fa-solid fa-angle-right right-arrow-icon"></i></a>
 </div>
+</div>
+
+<div class="wrapper-card" style="background-color: white; border: 4px solid rgb(from var(--secondary-btn-color) r g b / 0.65);">
+    <h2 class="heading" style="margin: 0; color: var(--primary-btn-color);">About Us</h2>
+    <div class="content">
+        <p>We are Team 75 and are submitting this application as our final project for Georgia Tech's CSE 6242 - Data Visualization and Analytics.</p>
+        <p>Our team includes: Jessica, Caden, Jeremy, Matthew, and Adhira.</p>
+    </div>
+</div>
+
+<!-- <div class="wrapper-card copyright-disclaimer-wrapper">
+    <span class="content copyright-disclaimer-text">Team 75 &bull; CSE 6242 &bull; Spring 2026</span>
+</div> -->
+
 </main>
 
 <div></div>

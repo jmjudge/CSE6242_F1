@@ -5,10 +5,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Onest:wght@100..900&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
-<link rel="stylesheet" href="styles/variables.css">
-<link rel="stylesheet" href="styles/layout.css">
-<link rel="stylesheet" href="styles/typeface.css">
-<link rel="stylesheet" href="styles/buttons.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='variables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='layout.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='typeface.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='buttons.css') }}">
 <style>
 *, *::before, *::after {
   box-sizing: border-box;
@@ -22,7 +22,7 @@
 <main>
 
 <div style="margin-top: 3rem;">
-<a class="button-text button-text-only" href="index.html"><i class="fa-solid fa-angle-left"></i> Back</a>
+<a class="button-text button-text-only" href="{{ url_for('index') }}"><i class="fa-solid fa-angle-left"></i> Back</a>
 </div>
 
 <div class="wrapper-card">
@@ -32,19 +32,26 @@
 
 <div class="content">
 	<p>There are many rules in Formula 1 that each team ("constructor") must abide by.  They change every year, but every now and then, the FIA makes significant 
-        adjustments to the rules.  The 2014 season was one such major overhaul, making it difficult to accurately compare against seasons prior.
+        adjustments to the rules.  The 2014 season was one such major overhaul, making it difficult to accurately compare against seasons prior.  Our data spans 
+        until 2024, so in this application, we analyze a total of a ten year period.
     </p>
     <p>Below is an interactive line chart that displays the cumulative points that each of the top 10 drivers earned throughout a given season.  We invite you to 
-        play around with our tool.  Simply select the season you are interested in exploring and the data will refresh automatically.  Additionally, you may hover 
+        play around with our tool!  Simply select the season you are interested in exploring and the data for that year will populate automatically.  Additionally, you may hover 
         over different data points to get a glimpse of a specific driver's performance throughout that season and race.  And finally, to have an easier-to-view 
         experience, you can filter the chart to show only specific drivers by clicking on a driver's name in the legend on the righthand side.
     </p>
     <br/>
-    <iframe src="f1_season_progression.html" title="Description of content" style="width: 100%; height: 700px; border-radius: 7px; border: none;"></iframe>
+    <iframe src="{{ url_for('historical_progression') }}" title="Description of content" style="width: 100%; height: 700px; border-radius: 7px; border: none;"></iframe>
 
 </div>
 
-</div></main>
+</div>
+
+<!-- <div class="wrapper-card copyright-disclaimer-wrapper">
+    <span class="content copyright-disclaimer-text">Team 75 &bull; CSE 6242 &bull; Spring 2026</span>
+</div> -->
+
+</main>
 
 <div></div></div>
 
