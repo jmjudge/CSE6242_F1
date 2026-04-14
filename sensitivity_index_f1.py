@@ -1,110 +1,148 @@
-# sensitivity_index_f1.py
+# f1_sensitivity_index.py
+# Sensitivity Index for Outcome-Reversal Probability & Entropy (2014–2024)
 
 import pandas as pd
 import numpy as np
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor
+from scipy.stats import entropy
 import matplotlib.pyplot as plt
 
-# ----------------------------
+# --------------------------------------------------
 # 1. Load Data
-# ----------------------------
-df = pd.read_csv("data/processed/master_driver_race.csv")
+# --------------------------------------------------
+df = pd.read_csv("master_driver_race.csv")
 
-# ----------------------------
-# 2. Feature Engineering
-# ----------------------------
-df["positions_gained"] = df["grid_position"] - df["finish_position"]
+# Keep only 2014–2024 era
+df = df[(df["year"] >= 2014) & (df["year"] <= 2024)].copy()
 
-# Ensure DNF flag is binary
-df["DNF_flag"] = df["dnf_flag"].apply(lambda x: 1 if x == 1 else 0)
+# --------------------------------------------------
+# 2. Clean Data & Feature Engineering
+# --------------------------------------------------
+# Positions gained
+df["positions_gained"] = df["grid"] - df["positionOrder"]
 
-# Avoid divide-by-zero issues
-df["championship_position"] = df["championship_position"].replace(0, np.nan)
-df["champ_pos_inv"] = 1 / df["championship_position"]
+# Ensure DNF is numeric
+df["is_dnf"] = df["is_dnf"].astype(int)
 
-# Constructor rolling performance
-df["constructor_avg_points"] = df.groupby("constructor")["points_scored"] \
-    .transform(lambda x: x.rolling(5, min_periods=1).mean())
+# Championship pressure (inverse of championship position)
+df["champ_pressure"] = 1 / df["championship_position"].replace(0, np.nan)
 
-# Drop NA rows created during feature engineering
-df = df.dropna()
+# Constructor strength proxy (rolling average of points)
+df["constructor_form"] = df.groupby("constructor_name")["points"].transform(
+    lambda x: x.rolling(5, min_periods=1).mean()
+)
 
-# ----------------------------
-# 3. Define Outcome Variable
-# ----------------------------
-y = df["points_scored"]
+# Replace missing pit stop values with 0 (driver did not pit or data missing)
+df["total_pit_stops"] = df["total_pit_stops"].fillna(0)
+df["total_pit_stop_duration_sec"] = df["total_pit_stop_duration_sec"].fillna(0)
 
-# ----------------------------
-# 4. Define Feature Set
-# ----------------------------
-X = df[[
-    "grid_position",
+# --------------------------------------------------
+# 3. Outcome Reversal Definition
+# --------------------------------------------------
+# If driver finishes >=3 places better than grid => positive reversal
+# If finishes >=3 places worse => negative reversal
+
+def classify_reversal(row):
+    delta = row["grid"] - row["positionOrder"]
+    if delta >= 3:
+        return 1
+    elif delta <= -3:
+        return -1
+    else:
+        return 0
+
+
+df["outcome_reversal"] = df.apply(classify_reversal, axis=1)
+df["reversal_event"] = df["outcome_reversal"].apply(lambda x: 1 if x != 0 else 0)
+
+# --------------------------------------------------
+# 4. Race Entropy (Unpredictability)
+# --------------------------------------------------
+# Higher entropy means less predictable race results
+
+entropy_by_race = df.groupby(["year", "raceId"]).apply(
+    lambda x: entropy(np.histogram(x["positionOrder"], bins=20, density=True)[0] + 1e-9)
+).rename("race_entropy").reset_index()
+
+df = df.merge(entropy_by_race, on=["year", "raceId"], how="left")
+
+# --------------------------------------------------
+# 5. Feature Matrix
+# --------------------------------------------------
+features = [
+    "grid",
     "positions_gained",
-    "DNF_flag",
-    "champ_pos_inv",
-    "constructor_avg_points"
-]]
+    "champ_pressure",
+    "constructor_form",
+    "is_dnf",
+    "total_pit_stops",
+    "race_entropy"
+]
 
-# One-hot encode categorical variables
-X = pd.concat([X, pd.get_dummies(df["constructor"], drop_first=True)], axis=1)
+X = df[features]
+y = df["reversal_event"]
 
-if "dnf_reason" in df.columns:
-    X = pd.concat([X, pd.get_dummies(df["dnf_reason"], drop_first=True)], axis=1)
+# Add constructor effect
+X = pd.concat([X, pd.get_dummies(df["constructor_name"], drop_first=True)], axis=1)
 
-# ----------------------------
-# 5. Standardization
-# ----------------------------
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
+# Drop missing values
+X = X.fillna(0)
 
-# ----------------------------
-# 6. Linear Regression Sensitivity
-# ----------------------------
-lr_model = LinearRegression()
-lr_model.fit(X_scaled, y)
+# --------------------------------------------------
+# 6. Train Random Forest
+# --------------------------------------------------
+rf = RandomForestClassifier(n_estimators=300, random_state=42)
+rf.fit(X, y)
 
-lr_sensitivity = pd.DataFrame({
-    "Variable": X.columns,
-    "Sensitivity_Index": abs(lr_model.coef_)
-}).sort_values(by="Sensitivity_Index", ascending=False)
+sensitivity = pd.DataFrame({
+    "Feature": X.columns,
+    "Sensitivity": rf.feature_importances_
+}).sort_values(by="Sensitivity", ascending=False)
 
-print("\nLinear Regression Sensitivity Index:")
-print(lr_sensitivity.head(10))
+sensitivity["Sensitivity"] /= sensitivity["Sensitivity"].sum()
 
-# ----------------------------
-# 7. Random Forest Sensitivity
-# ----------------------------
-rf_model = RandomForestRegressor(n_estimators=200, random_state=1)
-rf_model.fit(X, y)
+print("\nTop Sensitivity Drivers:")
+print(sensitivity.head(10))
 
-rf_sensitivity = pd.DataFrame({
-    "Variable": X.columns,
-    "Sensitivity_Index": rf_model.feature_importances_
-}).sort_values(by="Sensitivity_Index", ascending=False)
+# --------------------------------------------------
+# 7. Season Simulation
+# --------------------------------------------------
+n_simulations = 500
+reversal_rates = []
+
+for _ in range(n_simulations):
+    probs = rf.predict_proba(X)[:, 1]
+    sim = np.random.binomial(1, probs)
+    reversal_rates.append(sim.mean())
+
+print("\nMean Outcome-Reversal Probability:", np.mean(reversal_rates))
+print("Std Dev:", np.std(reversal_rates))
+
+plt.hist(reversal_rates, bins=30)
+plt.title("Outcome-Reversal Probability Distribution")
+plt.show()
+
+# --------------------------------------------------
+# 8. Driver Performance Sensitivity Index (DPSI)
+# --------------------------------------------------
+# Weight driver features by sensitivity values
+feature_weights = sensitivity.set_index("Feature")["Sensitivity"]
+
+feature_cols = [c for c in X.columns if c in feature_weights.index]
+driver_features = X[feature_cols].copy()
+driver_features["driver_name"] = df["driver_name"]
+
+driver_avg = driver_features.groupby("driver_name").mean()
 
 # Normalize
-rf_sensitivity["Sensitivity_Index"] = (
-    rf_sensitivity["Sensitivity_Index"] /
-    rf_sensitivity["Sensitivity_Index"].sum()
-)
+norm = (driver_avg - driver_avg.min()) / (driver_avg.max() - driver_avg.min() + 1e-9)
 
-print("\nRandom Forest Sensitivity Index:")
-print(rf_sensitivity.head(10))
+# Weighted sum
+for f in feature_cols:
+    norm[f] *= feature_weights.get(f, 0)
 
-# ----------------------------
-# 8. Plot Results
-# ----------------------------
-plt.figure()
-rf_sensitivity.head(10).plot(
-    x="Variable",
-    y="Sensitivity_Index",
-    kind="barh",
-    legend=False
-)
+norm["DPSI"] = norm.sum(axis=1)
 
-plt.title("Top 10 Sensitivity Drivers (Random Forest)")
-plt.xlabel("Sensitivity Index")
-plt.tight_layout()
-plt.show()
+print("\nTop Drivers by DPSI:")
+print(norm[["DPSI"]].sort_values(by="DPSI", ascending=False).head(10))
