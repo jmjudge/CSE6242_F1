@@ -50,8 +50,12 @@ def load_driver_data():
     drivers_by_year = {}
     for year in sorted(df['year'].unique()):
         year_df = df[df['year'] == year]
-        drivers = sorted(year_df['driver_name'].drop_duplicates().tolist())
-        drivers_by_year[str(year)] = drivers
+        race_groups = year_df.groupby('race_name')
+        year_drivers = {}
+        for race_name, group in race_groups:
+            drivers = sorted(group['driver_name'].drop_duplicates().tolist())
+            year_drivers[race_name] = drivers
+        drivers_by_year[str(year)] = year_drivers
     return drivers_by_year
 
 @app.route("/")

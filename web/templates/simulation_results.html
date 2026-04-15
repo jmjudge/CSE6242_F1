@@ -42,8 +42,12 @@
     {% if races %}
         <h2>Simulation Results for {{ year }}</h2>
         <ul>
-            {% for race in races %}
-                <li>{{ race }}</li>
+            {% for item in races %}
+                {% if item.race is defined %}
+                    <li>{{ item.race }} — {{ item.driver }} — DNF {{ item.dnf }}</li>
+                {% else %}
+                    <li>{{ item }}</li>
+                {% endif %}
             {% endfor %}
         </ul>
     {% else %}
