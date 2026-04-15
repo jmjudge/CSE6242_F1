@@ -55,16 +55,17 @@ def historical_progression():
     data = load_f1_data()
     return render_template("f1_season_progression.html", data=data)
 
-@app.route("/simulation-results", methods=["GET"])
+@app.route("/simulation-results", methods=["GET", "POST"])
 def visualize_simulation():
-    data_str = request.args.get("data")
-    if data_str:
-        try:
-            data = json.loads(data_str)
-            year = data.get("year")
-            races = data.get("races", [])
-        except json.JSONDecodeError:
-            year = None
+    if request.method == "POST":
+        year = request.form.get("year")
+        races_str = request.form.get("races")
+        if races_str:
+            try:
+                races = json.loads(races_str)
+            except json.JSONDecodeError:
+                races = []
+        else:
             races = []
     else:
         year = None

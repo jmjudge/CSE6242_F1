@@ -71,9 +71,12 @@
 
 </div>
 
+<form id="simulation-form" method="POST" action="{{ url_for('visualize_simulation') }}" target="simulation-iframe" style="display: none;">
+    <input type="hidden" id="year-input" name="year">
+    <input type="hidden" id="races-input" name="races">
+</form>
 
-
-<iframe src="{{ url_for('visualize_simulation') }}" title="Description of content" style="width: 100%; height: 700px; border-radius: 7px; border: none;"></iframe>
+<iframe id="simulation-iframe" name="simulation-iframe" src="{{ url_for('visualize_simulation') }}" title="Description of content" style="width: 100%; height: 700px; border-radius: 7px; border: none;"></iframe>
 
 
 <!-- <div class="wrapper-card copyright-disclaimer-wrapper">
@@ -91,13 +94,13 @@ const container = document.getElementById("raceContainer");
 const horizontalDivider = document.getElementById("addRaceHorizonalDiv");
 const submitBtn = document.getElementById("submitBtn");
 const resetBtn = document.getElementById("resetBtn");
-const iframe = document.querySelector("iframe");
+const iframe = document.getElementById("simulation-iframe");
+const form = document.getElementById("simulation-form");
 const errorMessage = document.getElementById("error-message");
 const yearSelect = document.getElementById("year-select");
 
 const MAX_RACES = 3;
 
-// Create a race card
 function createRaceCard() {
     const div = document.createElement("div");
     div.classList.add("race-card");
@@ -144,19 +147,21 @@ submitBtn.addEventListener("click", () => {
         return;
     }
 
-    const year = yearSelect.value;
-    const payload = { year: year, races: data };
-
-    // Encode the data as a query parameter
-    const query = new URLSearchParams({ data: JSON.stringify(payload) });
-    iframe.src = "/simulation-results?" + query.toString();
+    // Set form fields and submit
+    document.getElementById("year-input").value = yearSelect.value;
+    document.getElementById("races-input").value = JSON.stringify(data);
+    form.submit();
 });
 
 // Reset button
 resetBtn.addEventListener("click", () => {
     const inputs = document.querySelectorAll(".race-input");
     inputs.forEach(input => input.value = "");
-    iframe.src = "/simulation-results"; // Reset to default
+    // Clear the form fields
+    document.getElementById("year-input").value = "";
+    document.getElementById("races-input").value = "";
+    // Reload iframe to default state
+    iframe.src = "{{ url_for('visualize_simulation') }}";
 });
 
 // main refresh logic
@@ -167,15 +172,15 @@ function syncState() {
     addBtn.style.display = cards.length >= MAX_RACES ? "none" : "inline-block";
     horizontalDivider.style.display = container.children.length >= MAX_RACES ? "none" : "flex";
 
-    // Handle "x" buttons
+    // delete races
     cards.forEach((card) => {
         let btn = card.querySelector(".close-btn");
 
         if (cards.length === 1) {
-            // remove button if only one card
+            // remove the delete button if there is only one card
             if (btn) btn.remove();
         } else {
-            // ensure button exists if multiple cards
+            // otherwise, make sure the delete button exists for everything.
             if (!btn) {
                 btn = document.createElement("button");
                 btn.className = "close-btn";
