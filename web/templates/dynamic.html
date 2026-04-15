@@ -62,7 +62,7 @@
 
     <br/>
 
-    <div id="error-message" style="color: red; display: none;">At least one race configuration must be provided.</div>
+    <div id="error-message" style="color: red; display: none;"></div>
 
     <button id="submitBtn">Submit</button>
     <button id="resetBtn">Reset</button>
@@ -98,6 +98,7 @@ const iframe = document.getElementById("simulation-iframe");
 const form = document.getElementById("simulation-form");
 const errorMessage = document.getElementById("error-message");
 const yearSelect = document.getElementById("year-select");
+const DRIVER_DATA = {{ driver_data|tojson }};
 
 const MAX_RACES = 3;
 
@@ -108,11 +109,26 @@ function createRaceCard() {
     div.innerHTML = `
         <button class="close-btn">&times;</button>
         <p>Race configuration</p>
-        <input type="text" class="race-input" placeholder="Enter race details">
+        <div class="race-field">
+            <label>Driver</label>
+            <select class="driver-select">
+                <option value="">Select driver</option>
+            </select>
+        </div>
+        <div class="race-field">
+            <label>DNF probability</label>
+            <input type="number" class="dnf-input" placeholder="0.0 - 1.0" min="0" max="1" step="0.01">
+        </div>
     `;
+
+    const select = div.querySelector(".driver-select");
+    select.addEventListener("change", () => {
+        updateDriverOptions();
+    });
 
     div.querySelector(".close-btn").addEventListener("click", () => {
         div.remove();
+        updateDriverOptions();
         syncState();
     });
 
@@ -123,6 +139,7 @@ function createRaceCard() {
 window.addEventListener("DOMContentLoaded", () => {
     container.appendChild(createRaceCard());
     syncState();
+    updateDriverOptions();
 });
 
 addBtn.addEventListener("click", (e) => {
@@ -132,24 +149,104 @@ addBtn.addEventListener("click", (e) => {
 
     container.appendChild(createRaceCard());
     syncState();
+    updateDriverOptions();
 });
+
+yearSelect.addEventListener("change", () => {
+    updateDriverOptions();
+});
+
+function showError(message) {
+    errorMessage.textContent = message;
+    errorMessage.style.display = "block";
+    setTimeout(() => {
+        errorMessage.style.display = "none";
+    }, 3000);
+}
+
+function getSelectedDrivers() {
+    return Array.from(document.querySelectorAll(".driver-select"))
+        .map(select => select.value)
+        .filter(value => value !== "");
+}
+
+function updateDriverOptions() {
+    const selectedDrivers = getSelectedDrivers();
+    const year = yearSelect.value;
+    const options = DRIVER_DATA[year] || [];
+
+    document.querySelectorAll(".driver-select").forEach((select) => {
+        const currentValue = select.value;
+        const otherSelected = new Set(selectedDrivers.filter(d => d !== currentValue));
+
+        select.innerHTML = '<option value="">Select driver</option>';
+        options.forEach(driver => {
+            const option = document.createElement("option");
+            option.value = driver;
+            option.textContent = driver;
+            if (driver === currentValue) {
+                option.selected = true;
+            }
+            if (otherSelected.has(driver)) {
+                option.disabled = true;
+            }
+            select.appendChild(option);
+        });
+    });
+}
 
 // Submit button
 submitBtn.addEventListener("click", () => {
-    const inputs = document.querySelectorAll(".race-input");
-    const data = Array.from(inputs).map(input => input.value.trim()).filter(value => value !== "");
+    const cards = Array.from(container.querySelectorAll(".race-card"));
+    const results = [];
+    const seenDrivers = new Set();
+    let error = null;
 
-    if (data.length === 0) {
-        errorMessage.style.display = "block";
-        setTimeout(() => {
-            errorMessage.style.display = "none";
-        }, 3000); // Hide after 3 seconds
+    for (const card of cards) {
+        const driver = card.querySelector(".driver-select").value;
+        const dnfValue = card.querySelector(".dnf-input").value.trim();
+
+        if (!driver && !dnfValue) {
+            continue; // ignore empty card
+        }
+
+        if (!driver) {
+            error = "Each configured race needs a driver.";
+            break;
+        }
+
+        if (seenDrivers.has(driver)) {
+            error = "Each driver can only be selected once.";
+            break;
+        }
+        seenDrivers.add(driver);
+
+        if (dnfValue === "") {
+            error = "Each configured race needs a DNF probability.";
+            break;
+        }
+
+        const dnf = parseFloat(dnfValue);
+        if (Number.isNaN(dnf) || dnf < 0 || dnf > 1) {
+            error = "DNF probability must be a number between 0 and 1.";
+            break;
+        }
+
+        results.push({ driver, dnf });
+    }
+
+    if (error) {
+        showError(error);
         return;
     }
 
-    // Set form fields and submit
+    if (results.length === 0) {
+        showError("At least one race configuration must be provided.");
+        return;
+    }
+
     document.getElementById("year-input").value = yearSelect.value;
-    document.getElementById("races-input").value = JSON.stringify(data);
+    document.getElementById("races-input").value = JSON.stringify(results);
     form.submit();
 });
 

@@ -42,6 +42,18 @@ def load_f1_data():
         data[str(year)] = {'races': races, 'series': series[:10]}
     return data
 
+
+def load_driver_data():
+    csv_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'processed', 'master_driver_race.csv')
+    df = pd.read_csv(csv_path)
+    df = df[df['year'] >= 2014]
+    drivers_by_year = {}
+    for year in sorted(df['year'].unique()):
+        year_df = df[df['year'] == year]
+        drivers = sorted(year_df['driver_name'].drop_duplicates().tolist())
+        drivers_by_year[str(year)] = drivers
+    return drivers_by_year
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -74,7 +86,8 @@ def visualize_simulation():
 
 @app.route("/simulate", methods=["GET", "POST"])
 def dynamic():
-    return render_template("dynamic.html")
+    driver_data = load_driver_data()
+    return render_template("dynamic.html", driver_data=driver_data)
 
 if __name__ == "__main__":
     app.run(debug=True)
