@@ -36,7 +36,22 @@
         Simply specify a race and adjust your parameters to the desired settings.  Then, we'll re-run that race thousands of times using a Monte-Carlo simulator to see 
         just how drastically a race can change.  You can add up to 3 races.
     </p>
-
+    <div class="year-selector">
+        <label for="year-select">Select Season Year:</label>
+        <select id="year-select">
+            <option value="2024" selected>2024</option>
+            <option value="2023">2023</option>
+            <option value="2022">2022</option>
+            <option value="2021">2021</option>
+            <option value="2020">2020</option>
+            <option value="2019">2019</option>
+            <option value="2018">2018</option>
+            <option value="2017">2017</option>
+            <option value="2016">2016</option>
+            <option value="2015">2015</option>
+            <option value="2014">2014</option>
+        </select>
+    </div>
     <div id="raceSection">
         <div id="raceContainer"></div>
 
@@ -47,9 +62,19 @@
 
     <br/>
 
+    <div id="error-message" style="color: red; display: none;">At least one race configuration must be provided.</div>
+
+    <button id="submitBtn">Submit</button>
+    <button id="resetBtn">Reset</button>
+
 </div>
 
 </div>
+
+
+
+<iframe src="{{ url_for('visualize_simulation') }}" title="Description of content" style="width: 100%; height: 700px; border-radius: 7px; border: none;"></iframe>
+
 
 <!-- <div class="wrapper-card copyright-disclaimer-wrapper">
     <span class="content copyright-disclaimer-text">Team 75 &bull; CSE 6242 &bull; Spring 2026</span>
@@ -64,6 +89,11 @@
 const addBtn = document.getElementById("addRaceBtn");
 const container = document.getElementById("raceContainer");
 const horizontalDivider = document.getElementById("addRaceHorizonalDiv");
+const submitBtn = document.getElementById("submitBtn");
+const resetBtn = document.getElementById("resetBtn");
+const iframe = document.querySelector("iframe");
+const errorMessage = document.getElementById("error-message");
+const yearSelect = document.getElementById("year-select");
 
 const MAX_RACES = 3;
 
@@ -75,9 +105,9 @@ function createRaceCard() {
     div.innerHTML = `
         <button class="close-btn">&times;</button>
         <p>Race configuration</p>
+        <input type="text" class="race-input" placeholder="Enter race details">
     `;
 
-    // remove logic
     div.querySelector(".close-btn").addEventListener("click", () => {
         div.remove();
         syncState();
@@ -86,7 +116,7 @@ function createRaceCard() {
     return div;
 }
 
-// Ensure one exists on load
+// auto-populate one on load
 window.addEventListener("DOMContentLoaded", () => {
     container.appendChild(createRaceCard());
     syncState();
@@ -101,15 +131,41 @@ addBtn.addEventListener("click", (e) => {
     syncState();
 });
 
-// Core logic: enforce rules
+// Submit button
+submitBtn.addEventListener("click", () => {
+    const inputs = document.querySelectorAll(".race-input");
+    const data = Array.from(inputs).map(input => input.value.trim()).filter(value => value !== "");
+
+    if (data.length === 0) {
+        errorMessage.style.display = "block";
+        setTimeout(() => {
+            errorMessage.style.display = "none";
+        }, 3000); // Hide after 3 seconds
+        return;
+    }
+
+    const year = yearSelect.value;
+    const payload = { year: year, races: data };
+
+    // Encode the data as a query parameter
+    const query = new URLSearchParams({ data: JSON.stringify(payload) });
+    iframe.src = "/simulation-results?" + query.toString();
+});
+
+// Reset button
+resetBtn.addEventListener("click", () => {
+    const inputs = document.querySelectorAll(".race-input");
+    inputs.forEach(input => input.value = "");
+    iframe.src = "/simulation-results"; // Reset to default
+});
+
+// main refresh logic
 function syncState() {
     const cards = container.querySelectorAll(".race-card");
 
-    // Toggle add button
-    addBtn.style.display =
-        cards.length >= MAX_RACES ? "none" : "inline-block";
-    horizontalDivider.style.display = 
-        container.children.length >= MAX_RACES ? "none" : "flex";
+    // add race button
+    addBtn.style.display = cards.length >= MAX_RACES ? "none" : "inline-block";
+    horizontalDivider.style.display = container.children.length >= MAX_RACES ? "none" : "flex";
 
     // Handle "x" buttons
     cards.forEach((card) => {

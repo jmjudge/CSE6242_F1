@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, render_template
 import pandas as pd
 import os
+import json
 
 app = Flask(__name__)
 
@@ -53,6 +54,22 @@ def static_page():
 def historical_progression():
     data = load_f1_data()
     return render_template("f1_season_progression.html", data=data)
+
+@app.route("/simulation-results", methods=["GET"])
+def visualize_simulation():
+    data_str = request.args.get("data")
+    if data_str:
+        try:
+            data = json.loads(data_str)
+            year = data.get("year")
+            races = data.get("races", [])
+        except json.JSONDecodeError:
+            year = None
+            races = []
+    else:
+        year = None
+        races = []
+    return render_template("simulation_results.html", year=year, races=races)
 
 @app.route("/simulate", methods=["GET", "POST"])
 def dynamic():

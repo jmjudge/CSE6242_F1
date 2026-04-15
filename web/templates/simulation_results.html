@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Onest:wght@100..900&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='variables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='layout.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='typeface.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='buttons.css') }}">
+<style>
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+</style>
+</head>
+<body>
+
+<div class="">
+
+
+<div class="">
+
+<div class="content">
+	<p>This page should be used to display the visualization after the simulations.  It will be embedded
+        into the /simulate page and display after the user runs the Monte Carlo simulation with the parameters they specified in /simulate.
+        
+        The workflow goes as follows:
+
+        index.html -> /simulate. Visualization, which is separate but embedded HTML file, is not visible. 
+        User enters parameters for up to 3 races for a selected season (year). User clicks "Run" -> 
+        editable parameters disappear.  Loading circle appears.  API request to run simulation with specified parameters. 
+        API responds with data for visualization (preferrably in JSON format).  Loading circle disappers.
+        Data is loaded into simulate_results.html from main.py.  Then, main.py tells /simulate that simulation has finished 
+        running and was sent.  /simulate unhides the embedded visualization page.
+        Reset button unhides.
+        User clicks reset button to hide visualization and show editable parameters.
+
+    </p>
+
+    {% if races %}
+        <h2>Simulation Results for {{ year }}</h2>
+        <ul>
+            {% for race in races %}
+                <li>{{ race }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>This page should be used to display the visualization after the simulations. It will be embedded into the /simulate page and display after the user runs the Monte Carlo simulation with the parameters they specified in /simulate.</p>
+    {% endif %}
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+</script>
+
+</body>
+</html>
