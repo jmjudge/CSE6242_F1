@@ -142,3 +142,26 @@ class MonteCarloSimulator:
             "champion_counts": champion_counts_named,
             "csi": float(csi)
         }
+
+    def simulate_configs(self, year, configs, n_simulations=100):
+        """
+        Dummy counterfactual simulation for the selected race configurations.
+        This returns randomly generated values for testing the submit and render path.
+        """
+        results = []
+        for config in configs:
+            results.append({
+                "race": config.get("race"),
+                "driver": config.get("driver"),
+                "dnf": float(config.get("dnf", 0)),
+                "avg_points": float(np.round(np.random.uniform(5.0, 22.0), 1)),
+                "win_chance": float(np.round(np.random.uniform(0.05, 0.65), 3))
+            })
+
+        return {
+            "year": int(year) if year is not None else None,
+            "n_simulations": int(n_simulations),
+            "total_races": len(results),
+            "race_results": results,
+            "note": "Dummy simulation output for integration testing."
+        }

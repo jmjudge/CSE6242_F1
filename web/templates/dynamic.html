@@ -14,6 +14,15 @@
 *, *::before, *::after {
   box-sizing: border-box;
 }
+.field-error {
+  color: #c53030;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  display: none;
+}
+.input-error {
+  border-color: #c53030 !important;
+}
 </style>
 </head>
 <body>
@@ -33,10 +42,25 @@
 
 <div class="content">
 	<p>Have you ever wondered how things would change if the racers made different choices?  With our simulations, we bring that power to you.  
-        Simply specify a race and adjust your parameters to the desired settings.  Then, we'll re-run that race thousands of times using a Monte-Carlo simulator to see 
-        just how drastically a race can change.  You can add up to 3 races.
+        Simply specify a race and adjust your parameters to the desired settings.  Then, we'll re-run that race many times using a Monte-Carlo simulator to see 
+        just how drastically a race can change.  You can alter up to 3 races, and modify the performance of 1 driver per race.
     </p>
-
+    <div class="year-selector">
+        <label for="year-select">Select Season Year:</label>
+        <select id="year-select">
+            <option value="2024" selected>2024</option>
+            <option value="2023">2023</option>
+            <option value="2022">2022</option>
+            <option value="2021">2021</option>
+            <option value="2020">2020</option>
+            <option value="2019">2019</option>
+            <option value="2018">2018</option>
+            <option value="2017">2017</option>
+            <option value="2016">2016</option>
+            <option value="2015">2015</option>
+            <option value="2014">2014</option>
+        </select>
+    </div>
     <div id="raceSection">
         <div id="raceContainer"></div>
 
@@ -47,9 +71,22 @@
 
     <br/>
 
+    <div id="error-message" style="color: red; display: none;"></div>
+
+    <button id="submitBtn">Submit</button>
+    <button id="resetBtn">Reset</button>
+
 </div>
 
 </div>
+
+<form id="simulation-form" method="POST" action="{{ url_for('visualize_simulation') }}" target="simulation-iframe" style="display: none;">
+    <input type="hidden" id="year-input" name="year">
+    <input type="hidden" id="races-input" name="races">
+</form>
+
+<iframe id="simulation-iframe" name="simulation-iframe" src="{{ url_for('visualize_simulation') }}" title="Description of content" style="width: 100%; height: 700px; border-radius: 7px; border: none;"></iframe>
+
 
 <!-- <div class="wrapper-card copyright-disclaimer-wrapper">
     <span class="content copyright-disclaimer-text">Team 75 &bull; CSE 6242 &bull; Spring 2026</span>
@@ -64,10 +101,16 @@
 const addBtn = document.getElementById("addRaceBtn");
 const container = document.getElementById("raceContainer");
 const horizontalDivider = document.getElementById("addRaceHorizonalDiv");
+const submitBtn = document.getElementById("submitBtn");
+const resetBtn = document.getElementById("resetBtn");
+const iframe = document.getElementById("simulation-iframe");
+const form = document.getElementById("simulation-form");
+const errorMessage = document.getElementById("error-message");
+const yearSelect = document.getElementById("year-select");
+const DRIVER_DATA = {{ driver_data|tojson }};
 
 const MAX_RACES = 3;
 
-// Create a race card
 function createRaceCard() {
     const div = document.createElement("div");
     div.classList.add("race-card");
@@ -75,21 +118,58 @@ function createRaceCard() {
     div.innerHTML = `
         <button class="close-btn">&times;</button>
         <p>Race configuration</p>
+        <div class="race-field">
+            <label>Race</label>
+            <select class="race-select">
+                <option value="">Select race</option>
+            </select>
+            <div class="field-error race-error"></div>
+        </div>
+        <div class="race-field">
+            <label>Driver</label>
+            <select class="driver-select" disabled>
+                <option value="">Select race first</option>
+            </select>
+            <div class="field-error driver-error"></div>
+        </div>
+        <div class="race-field">
+            <label>DNF probability</label>
+            <input type="number" class="dnf-input" placeholder="0.0 - 1.0" min="0" max="1" step="0.01">
+            <div class="field-error dnf-error"></div>
+        </div>
     `;
 
-    // remove logic
+    const raceSelect = div.querySelector(".race-select");
+    const driverSelect = div.querySelector(".driver-select");
+    const dnfInput = div.querySelector(".dnf-input");
+
+    raceSelect.addEventListener("change", () => {
+        clearFieldErrors(div);
+        updateDriverOptions();
+    });
+
+    driverSelect.addEventListener("change", () => {
+        clearFieldErrors(div);
+    });
+
+    dnfInput.addEventListener("input", () => {
+        clearFieldErrors(div);
+    });
+
     div.querySelector(".close-btn").addEventListener("click", () => {
         div.remove();
+        updateDriverOptions();
         syncState();
     });
 
     return div;
 }
 
-// Ensure one exists on load
+// auto-populate one on load
 window.addEventListener("DOMContentLoaded", () => {
     container.appendChild(createRaceCard());
     syncState();
+    updateDriverOptions();
 });
 
 addBtn.addEventListener("click", (e) => {
@@ -99,27 +179,231 @@ addBtn.addEventListener("click", (e) => {
 
     container.appendChild(createRaceCard());
     syncState();
+    updateDriverOptions();
 });
 
-// Core logic: enforce rules
+yearSelect.addEventListener("change", () => {
+    const cards = Array.from(container.querySelectorAll(".race-card"));
+    cards.forEach(card => {
+        const raceSelect = card.querySelector(".race-select");
+        const driverSelect = card.querySelector(".driver-select");
+        raceSelect.value = "";
+        driverSelect.innerHTML = '<option value="">Select race first</option>';
+        driverSelect.disabled = true;
+        clearFieldErrors(card);
+    });
+    updateDriverOptions();
+});
+
+function showError(message) {
+    errorMessage.textContent = message;
+    errorMessage.style.display = "block";
+    setTimeout(() => {
+        errorMessage.style.display = "none";
+    }, 3000);
+}
+
+function clearFieldErrors(card) {
+    const driverError = card.querySelector(".driver-error");
+    const dnfError = card.querySelector(".dnf-error");
+    const select = card.querySelector(".driver-select");
+    const input = card.querySelector(".dnf-input");
+
+    if (driverError) {
+        driverError.textContent = "";
+        driverError.style.display = "none";
+    }
+    if (dnfError) {
+        dnfError.textContent = "";
+        dnfError.style.display = "none";
+    }
+    if (select) {
+        select.classList.remove("input-error");
+    }
+    if (input) {
+        input.classList.remove("input-error");
+    }
+}
+
+function setFieldError(card, field, message) {
+    const errorElement = card.querySelector(`.${field}-error`);
+    const inputElement = card.querySelector(`.${field}-select`) || card.querySelector(`.${field}-input`);
+
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.style.display = "block";
+    }
+    if (inputElement) {
+        inputElement.classList.add("input-error");
+    }
+}
+
+function getSelectedRaces() {
+    return Array.from(document.querySelectorAll(".race-select"))
+        .map(select => select.value)
+        .filter(value => value !== "");
+}
+
+function updateDriverOptions() {
+    const selectedRaces = getSelectedRaces();
+    const year = yearSelect.value;
+    const raceOptions = DRIVER_DATA[year] || {};
+    const raceNames = Object.keys(raceOptions);
+
+    document.querySelectorAll(".race-select").forEach((select) => {
+        const currentRace = select.value;
+        select.innerHTML = '<option value="">Select race</option>';
+        raceNames.forEach(race => {
+            const option = document.createElement("option");
+            option.value = race;
+            option.textContent = race;
+            if (race === currentRace) {
+                option.selected = true;
+            }
+            if (race !== currentRace && selectedRaces.includes(race)) {
+                option.disabled = true;
+            }
+            select.appendChild(option);
+        });
+    });
+
+    document.querySelectorAll(".race-card").forEach((card) => {
+        const raceSelect = card.querySelector(".race-select");
+        const driverSelect = card.querySelector(".driver-select");
+        const currentRace = raceSelect.value;
+        const currentDriver = driverSelect.value;
+
+        if (!currentRace || !raceOptions[currentRace]) {
+            driverSelect.innerHTML = '<option value="">Select race first</option>';
+            driverSelect.disabled = true;
+            return;
+        }
+
+        const driversForRace = raceOptions[currentRace] || [];
+
+        driverSelect.disabled = false;
+        driverSelect.innerHTML = '<option value="">Select driver</option>';
+        driversForRace.forEach(driver => {
+            const option = document.createElement("option");
+            option.value = driver;
+            option.textContent = driver;
+            if (driver === currentDriver) {
+                option.selected = true;
+            }
+            driverSelect.appendChild(option);
+        });
+
+        if (currentDriver && !driversForRace.includes(currentDriver)) {
+            driverSelect.value = "";
+        }
+    });
+}
+
+// Submit button
+submitBtn.addEventListener("click", () => {
+    const cards = Array.from(container.querySelectorAll(".race-card"));
+    const results = [];
+    const seenDrivers = new Set();
+    let error = null;
+
+    for (const card of cards) {
+        const raceSelect = card.querySelector(".race-select");
+        const driverSelect = card.querySelector(".driver-select");
+        const dnfInput = card.querySelector(".dnf-input");
+        const race = raceSelect.value;
+        const driver = driverSelect.value;
+        const dnfValue = dnfInput.value.trim();
+
+        clearFieldErrors(card);
+
+        if (!race && !driver && !dnfValue) {
+            continue; // ignore empty card
+        }
+
+        if (!race) {
+            setFieldError(card, "race", "Select a race for this configuration.");
+            error = true;
+            break;
+        }
+
+        if (!driver) {
+            setFieldError(card, "driver", "Select a driver for this race.");
+            error = true;
+            break;
+        }
+
+        if (dnfValue === "") {
+            setFieldError(card, "dnf", "Enter a DNF probability.");
+            error = true;
+            break;
+        }
+
+        const dnf = parseFloat(dnfValue);
+        if (Number.isNaN(dnf) || dnf < 0 || dnf > 1) {
+            setFieldError(card, "dnf", "Choose a number between 0 and 1.");
+            error = true;
+            break;
+        }
+
+        results.push({ race, driver, dnf });
+    }
+
+    if (error) {
+        return;
+    }
+
+    if (results.length === 0) {
+        showError("At least one race configuration must be provided.");
+        return;
+    }
+
+    document.getElementById("year-input").value = yearSelect.value;
+    document.getElementById("races-input").value = JSON.stringify(results);
+    form.submit();
+});
+
+// Reset button
+resetBtn.addEventListener("click", () => {
+    document.querySelectorAll(".race-select").forEach(select => {
+        select.value = "";
+    });
+    document.querySelectorAll(".driver-select").forEach(select => {
+        select.innerHTML = '<option value="">Select race first</option>';
+        select.disabled = true;
+        select.classList.remove("input-error");
+    });
+    document.querySelectorAll(".dnf-input").forEach(input => {
+        input.value = "";
+        input.classList.remove("input-error");
+    });
+    document.querySelectorAll(".field-error").forEach(el => {
+        el.textContent = "";
+        el.style.display = "none";
+    });
+    // Clear the form fields
+    document.getElementById("year-input").value = "";
+    document.getElementById("races-input").value = "";
+    // Reload iframe to default state
+    iframe.src = "{{ url_for('visualize_simulation') }}";
+});
+
+// main refresh logic
 function syncState() {
     const cards = container.querySelectorAll(".race-card");
 
-    // Toggle add button
-    addBtn.style.display =
-        cards.length >= MAX_RACES ? "none" : "inline-block";
-    horizontalDivider.style.display = 
-        container.children.length >= MAX_RACES ? "none" : "flex";
+    // add race button
+    addBtn.style.display = cards.length >= MAX_RACES ? "none" : "inline-block";
+    horizontalDivider.style.display = container.children.length >= MAX_RACES ? "none" : "flex";
 
-    // Handle "x" buttons
+    // delete races
     cards.forEach((card) => {
         let btn = card.querySelector(".close-btn");
 
         if (cards.length === 1) {
-            // remove button if only one card
+            // remove the delete button if there is only one card
             if (btn) btn.remove();
         } else {
-            // ensure button exists if multiple cards
+            // otherwise, make sure the delete button exists for everything.
             if (!btn) {
                 btn = document.createElement("button");
                 btn.className = "close-btn";
