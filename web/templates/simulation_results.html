@@ -39,8 +39,20 @@
 
     </p>
 
-    {% if races %}
-        <h2>Simulation Results for {{ year }}</h2>
+    {% if sim_results %}
+        <h2>Simulation Results for {{ sim_results.year }}</h2>
+        <p>Ran {{ sim_results.n_simulations }} dummy Monte Carlo trials for {{ sim_results.total_races }} race configuration{{ sim_results.total_races != 1 and 's' or '' }}.</p>
+        <ul>
+            {% for result in sim_results.race_results %}
+                <li>
+                    <strong>{{ result.race }}</strong> — {{ result.driver }} — DNF {{ result.dnf }}
+                    — avg points {{ result.avg_points }} — win chance {{ result.win_chance }}
+                </li>
+            {% endfor %}
+        </ul>
+        <p>{{ sim_results.note }}</p>
+    {% elif races %}
+        <h2>Simulation Configurations Received</h2>
         <ul>
             {% for item in races %}
                 {% if item.race is defined %}

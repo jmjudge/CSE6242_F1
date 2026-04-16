@@ -238,14 +238,14 @@ function setFieldError(card, field, message) {
     }
 }
 
-function getSelectedDrivers() {
-    return Array.from(document.querySelectorAll(".driver-select"))
+function getSelectedRaces() {
+    return Array.from(document.querySelectorAll(".race-select"))
         .map(select => select.value)
         .filter(value => value !== "");
 }
 
 function updateDriverOptions() {
-    const selectedDrivers = getSelectedDrivers();
+    const selectedRaces = getSelectedRaces();
     const year = yearSelect.value;
     const raceOptions = DRIVER_DATA[year] || {};
     const raceNames = Object.keys(raceOptions);
@@ -259,6 +259,9 @@ function updateDriverOptions() {
             option.textContent = race;
             if (race === currentRace) {
                 option.selected = true;
+            }
+            if (race !== currentRace && selectedRaces.includes(race)) {
+                option.disabled = true;
             }
             select.appendChild(option);
         });
@@ -277,7 +280,6 @@ function updateDriverOptions() {
         }
 
         const driversForRace = raceOptions[currentRace] || [];
-        const otherSelected = new Set(selectedDrivers.filter(d => d !== currentDriver));
 
         driverSelect.disabled = false;
         driverSelect.innerHTML = '<option value="">Select driver</option>';
@@ -287,9 +289,6 @@ function updateDriverOptions() {
             option.textContent = driver;
             if (driver === currentDriver) {
                 option.selected = true;
-            }
-            if (otherSelected.has(driver)) {
-                option.disabled = true;
             }
             driverSelect.appendChild(option);
         });
@@ -332,13 +331,6 @@ submitBtn.addEventListener("click", () => {
             error = true;
             break;
         }
-
-        if (seenDrivers.has(driver)) {
-            setFieldError(card, "driver", "This driver is already selected.");
-            error = true;
-            break;
-        }
-        seenDrivers.add(driver);
 
         if (dnfValue === "") {
             setFieldError(card, "dnf", "Enter a DNF probability.");

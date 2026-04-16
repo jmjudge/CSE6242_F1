@@ -2,6 +2,12 @@ from flask import Flask, request, jsonify, render_template
 import pandas as pd
 import os
 import json
+import sys
+
+# Add the parent directory to sys.path to enable absolute imports from src
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from src.monte_carlo import MonteCarloSimulator
 
 app = Flask(__name__)
 
@@ -58,6 +64,13 @@ def load_driver_data():
         drivers_by_year[str(year)] = year_drivers
     return drivers_by_year
 
+
+def load_master_driver_race_df():
+    csv_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'processed', 'master_driver_race.csv')
+    df = pd.read_csv(csv_path)
+    df = df[df['year'] >= 2014]
+    return df
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -73,6 +86,7 @@ def historical_progression():
 
 @app.route("/simulation-results", methods=["GET", "POST"])
 def visualize_simulation():
+    sim_results = None
     if request.method == "POST":
         year = request.form.get("year")
         races_str = request.form.get("races")
@@ -83,10 +97,21 @@ def visualize_simulation():
                 races = []
         else:
             races = []
+
+        if year and races:
+            df = load_master_driver_race_df()
+            simulator = MonteCarloSimulator(df)
+            sim_results = simulator.simulate_configs(year, races, n_simulations=100)
     else:
         year = None
         races = []
-    return render_template("simulation_results.html", year=year, races=races)
+
+    return render_template(
+        "simulation_results.html",
+        year=year,
+        races=races,
+        sim_results=sim_results,
+    )
 
 @app.route("/simulate", methods=["GET", "POST"])
 def dynamic():
