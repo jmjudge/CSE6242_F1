@@ -1,5 +1,5 @@
 # f1_sensitivity_index.py
-# Championship + Driver-Level Sensitivity Index (NO Entropy)
+# Championship + Driver-Level Sensitivity Index
 
 import pandas as pd
 import numpy as np
