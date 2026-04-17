@@ -23,6 +23,9 @@
 .input-error {
   border-color: #c53030 !important;
 }
+.race-field {
+  margin-bottom: 1rem;
+}
 </style>
 </head>
 <body>
@@ -46,8 +49,8 @@
         just how drastically a race can change.  You can alter up to 3 races, and modify the performance of 1 driver per race.
     </p>
     <div class="year-selector">
-        <label for="year-select">Select Season Year:</label>
-        <select id="year-select">
+        <label for="year-select"><h2 style="display: inline-block;">Select Season Year:</h2></label>
+        <select id="year-select" class="dropdown-medium">
             <option value="2024" selected>2024</option>
             <option value="2023">2023</option>
             <option value="2022">2022</option>
@@ -73,8 +76,10 @@
 
     <div id="error-message" style="color: red; display: none;"></div>
 
-    <button id="submitBtn">Submit</button>
-    <button id="resetBtn">Reset</button>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <button id="submitBtn" class="button-text button-std-rect button-primary">Submit</button>
+        <button id="resetBtn" class="button-text button-std-rounded button-secondary" style="float: right;"><i class="fa-solid fa-arrow-rotate-left"></i> Reset</button>
+    </div>
 
 </div>
 
@@ -114,27 +119,27 @@ const MAX_RACES = 3;
 function createRaceCard() {
     const div = document.createElement("div");
     div.classList.add("race-card");
+    div.classList.add("content");
 
     div.innerHTML = `
         <button class="close-btn">&times;</button>
-        <p>Race configuration</p>
         <div class="race-field">
             <label>Race</label>
-            <select class="race-select">
+            <select class="race-select dropdown-normal">
                 <option value="">Select race</option>
             </select>
             <div class="field-error race-error"></div>
         </div>
         <div class="race-field">
             <label>Driver</label>
-            <select class="driver-select" disabled>
+            <select class="driver-select dropdown-normal" disabled>
                 <option value="">Select race first</option>
             </select>
             <div class="field-error driver-error"></div>
         </div>
         <div class="race-field">
             <label>DNF probability</label>
-            <input type="number" class="dnf-input" placeholder="0.0 - 1.0" min="0" max="1" step="0.01">
+            <input type="number" class="dnf-input text-entry" placeholder="0.0 - 1.0" min="0" max="1" step="0.01">
             <div class="field-error dnf-error"></div>
         </div>
     `;
@@ -204,11 +209,17 @@ function showError(message) {
 }
 
 function clearFieldErrors(card) {
+    const raceError = card.querySelector(".race-error");
     const driverError = card.querySelector(".driver-error");
     const dnfError = card.querySelector(".dnf-error");
-    const select = card.querySelector(".driver-select");
-    const input = card.querySelector(".dnf-input");
+    const raceSelect = card.querySelector(".race-select");
+    const driverSelect = card.querySelector(".driver-select");
+    const dnfInput = card.querySelector(".dnf-input");
 
+    if (raceError) {
+        raceError.textContent = "";
+        raceError.style.display = "none";
+    }
     if (driverError) {
         driverError.textContent = "";
         driverError.style.display = "none";
@@ -217,11 +228,14 @@ function clearFieldErrors(card) {
         dnfError.textContent = "";
         dnfError.style.display = "none";
     }
-    if (select) {
-        select.classList.remove("input-error");
+    if (raceSelect) {
+        raceSelect.classList.remove("input-error");
     }
-    if (input) {
-        input.classList.remove("input-error");
+    if (driverSelect) {
+        driverSelect.classList.remove("input-error");
+    }
+    if (dnfInput) {
+        dnfInput.classList.remove("input-error");
     }
 }
 
