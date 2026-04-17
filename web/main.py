@@ -3,8 +3,6 @@ import pandas as pd
 import os
 import json
 import sys
-
-# Add the parent directory to sys.path to enable absolute imports from src
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from src.monte_carlo import MonteCarloSimulator
