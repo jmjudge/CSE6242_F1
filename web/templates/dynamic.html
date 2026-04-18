@@ -74,7 +74,7 @@
 
     <br/>
 
-    <div id="error-message" style="color: red; display: none;"></div>
+    <div id="error-message" style="color: red; display: none; font-size: 15px; width: 100%; text-align: center; margin: 0;"><i class="fa-solid fa-triangle-exclamation"></i> At least one race configuration must be provided.</div>
 
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <button id="submitBtn" class="button-text button-std-rect button-primary">Submit</button>
@@ -201,7 +201,7 @@ yearSelect.addEventListener("change", () => {
 });
 
 function showError(message) {
-    errorMessage.textContent = message;
+    // errorMessage.textContent = message;
     errorMessage.style.display = "block";
     setTimeout(() => {
         errorMessage.style.display = "none";
