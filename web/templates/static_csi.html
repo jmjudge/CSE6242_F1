@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>F1 Championship Progression</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Onest:wght@100..900&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='variables.css') }}">
+
+  <style>
+    * , *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* CSS variables */
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --border: #1e1e2e;
+      --accent: #e10600;
+      --accent2: #ff6b35;
+      --text: #e8e8f0;
+      --muted: #5a5a7a;
+      --grid: #1a1a28;
+      --label-font-size: 10px;
+    }
+
+    body {
+      background: var(--background-card-color);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 24px 40px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .logo-mark {
+      width: 36px;
+      height: 36px;
+      background: var(--accent);
+      clip-path: polygon(0 0, 100% 0, 100% 70%, 70% 100%, 0 100%);
+      flex-shrink: 0;
+    }
+
+    h1 {
+      font-family: var(--heading-font-family);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+
+    h1 span {
+      color: var(--accent);
+    }
+
+    .subtitle {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.15em;
+      margin-top: 2px;
+    }
+
+    .controls {
+      padding: 16px 40px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .stat-bar {
+      margin-left: auto;
+      display: flex;
+      gap: 32px;
+    }
+
+    .stat {
+      text-align: right;
+    }
+
+    .stat-val {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      display: block;
+    }
+
+    .stat-lbl {
+      font-family: var(--body-font-family);
+      font-size: var(--label-font-size);
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .main {
+      display: flex;
+      flex: 0.75;
+      overflow: hidden;
+    }
+
+    #chart-container {
+      flex: 1;
+      /* padding: 24px 32px 24px 16px; */
+      position: relative;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .sidebar {
+      width: 220px;
+      border-left: 1px solid var(--border);
+      padding: 20px 16px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .sidebar-title {
+      font-family: var(--body-font-family);
+      font-size: var(--label-font-size);
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--secondary-gray-color);
+    }
+
+    .axis text {
+      fill: var(--muted);
+      font-family: var(--body-font-family);
+      font-size: 11px;
+    }
+
+    .axis line, .axis path {
+      stroke: var(--border);
+    }
+
+    .grid line {
+      stroke: var(--grid);
+      stroke-dasharray: 2,4;
+    }
+
+    .grid path { stroke: none; }
+
+    /* Tooltip stuff */
+    .tooltip {
+      position: absolute;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4.5px;
+      padding: 10px 14px;
+      font-size: 11px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 10;
+      max-width: 200px;
+    }
+
+    .tooltip.visible { opacity: 1; }
+
+    .tooltip-driver {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      color: var(--muted);
+      font-family: var(--body-font-family);
+      font-size: 10px;
+      margin-top: 2px;
+    }
+
+    .tooltip-row span:last-child { color: var(--text); }
+
+    .bar {
+      transition: fill 0.15s;
+    }
+
+    .bar:hover {
+      fill: var(--accent2);
+    }
+  </style>
+</head>
+
+<body>
+  <header style="display: none;">
+    <div class="logo-mark"></div>
+    <div>
+      <h1>F1 Championship <span>Stability</span> Index</h1>
+      <div class="subtitle">Team 75 · CSE 6242 · CSI Analysis</div>
+    </div>
+  </header>
+  <h2 style="color: var(--border); font-family: var(--body-font-family); margin-bottom: 12px; padding: 16px 40px;">Championship Stability Index (CSI) by Season</h2>
+
+  <!-- <div class="controls">
+    <div class="stat-bar">
+      <div class="stat">
+        <span class="stat-val" id="stat-avg-csi">{{ "%.3f"|format(avg_csi) }}</span>
+        <span class="stat-lbl">Avg CSI</span>
+      </div>
+      <div class="stat">
+        <span class="stat-val" id="stat-min-csi">{{ "%.3f"|format(min_csi) }}</span>
+        <span class="stat-lbl">Min CSI</span>
+      </div>
+      <div class="stat">
+        <span class="stat-val" id="stat-max-csi">{{ "%.3f"|format(max_csi) }}</span>
+        <span class="stat-lbl">Max CSI</span>
+      </div>
+    </div>
+  </div> -->
+
+  <div class="main">
+    <div id="chart-container">
+      <div class="tooltip" id="tooltip"></div>
+    </div>
+    <div class="sidebar">
+      <div class="sidebar-title">About CSI</div>
+      <div style="font-family: var(--body-font-family); font-size: 11px; color: var(--muted); line-height: 1.5;">
+        <p>The Championship Stability Index (CSI) measures how stable a season's championship outcome was. Lower CSI values indicate more stable seasons where the champion was likely to win.</p>
+        <p>CSI = 1 - (champion's win probability)</p>
+        <p>Values range from 0 (perfect stability) to 1 (maximum instability).</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // CSI data from summary.json
+    const CSI_DATA = {{ csi_data | tojson }};
+
+    function renderChart() {
+      const container = document.getElementById('chart-container');
+      const tooltip = document.getElementById('tooltip');
+
+      d3.select('#chart-container svg').remove();
+
+      const W = container.clientWidth;
+      const H = container.clientHeight;
+      const margin = { top: 20, right: 30, bottom: 0, left: 60 };
+      const w = W - margin.left - margin.right;
+      const h = H - margin.top - margin.bottom;
+
+      const svg = d3.select('#chart-container')
+        .append('svg')
+        .attr('width', W)
+        .attr('height', H);
+
+      const g = svg.append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+
+      // Scales
+      const y = d3.scaleBand()
+        .domain(CSI_DATA.map(d => d.year).reverse()) // Reverse for top-to-bottom
+        .range([0, h])
+        .padding(0.1);
+
+      const x = d3.scaleLinear()
+        .domain([0, d3.max(CSI_DATA, d => d.csi) * 1.1])
+        .range([0, w]);
+
+      // Axes
+      g.append('g')
+        .attr('class', 'axis')
+        .call(d3.axisLeft(y).tickFormat(d => d));
+
+      g.append('g')
+        .attr('class', 'axis')
+        .attr('transform', `translate(0,${h})`)
+        .call(d3.axisBottom(x).ticks(5).tickFormat(d => d.toFixed(2)));
+
+      // Grid
+      g.append('g')
+        .attr('class', 'grid')
+        .call(
+          d3.axisBottom(x)
+            .tickSize(h)
+            .tickFormat('')
+            .ticks(5)
+        );
+
+      // Bars
+      const bars = g.selectAll('.bar')
+        .data(CSI_DATA)
+        .enter().append('rect')
+        .attr('class', 'bar')
+        .attr('x', 0)
+        .attr('y', d => y(d.year))
+        .attr('width', d => x(d.csi))
+        .attr('height', y.bandwidth())
+        .attr('fill', 'var(--accent)')
+        .attr('rx', 2)
+        .attr('ry', 2);
+
+      // Labels
+      const labels = g.selectAll('.label')
+        .data(CSI_DATA)
+        .enter().append('text')
+        .attr('class', 'label')
+        .attr('x', d => {
+          const barWidth = x(d.csi);
+          const textWidth = getTextWidth(d.top_driver, '11px Orbitron');
+          return barWidth > textWidth + 10 ? barWidth - 5 : barWidth + 5;
+        })
+        .attr('y', d => y(d.year) + y.bandwidth() / 2)
+        .attr('dy', '0.35em')
+        .attr('text-anchor', d => {
+          const barWidth = x(d.csi);
+          const textWidth = getTextWidth(d.top_driver, '11px Orbitron');
+          return barWidth > textWidth + 10 ? 'end' : 'start';
+        })
+        .attr('fill', d => {
+          const barWidth = x(d.csi);
+          const textWidth = getTextWidth(d.top_driver, '11px Orbitron');
+          return barWidth > textWidth + 10 ? 'var(--text)' : 'var(--muted)';
+        })
+        .style('font-family', 'Orbitron, sans-serif')
+        .style('font-size', '11px')
+        .style('font-weight', '700')
+        .text(d => d.top_driver);
+
+      // Tooltip interactions
+      bars.on('mouseover', function(event, d) {
+        tooltip.innerHTML = `
+          <div class="tooltip-driver" style="color:var(--accent)">${d.year} Season</div>
+          <div class="tooltip-row"><span>CSI</span><span>${d.csi.toFixed(3)}</span></div>
+          <div class="tooltip-row"><span>Top Driver</span><span>${d.top_driver}</span></div>
+          <div class="tooltip-row"><span>Win Probability</span><span>${(d.top_driver_prob * 100).toFixed(1)}%</span></div>
+          <div class="tooltip-row"><span>Contenders</span><span>${d.num_contenders}</span></div>
+        `;
+        tooltip.classList.add('visible');
+      })
+      .on('mousemove', function(event) {
+        const rect = container.getBoundingClientRect();
+        let tx = event.clientX - rect.left + 12;
+        let ty = event.clientY - rect.top - 10;
+        if (tx + 200 > W) tx = event.clientX - rect.left - 210;
+        tooltip.style.left = tx + 'px';
+        tooltip.style.top = ty + 'px';
+      })
+      .on('mouseout', function() {
+        tooltip.classList.remove('visible');
+      });
+    }
+
+    function getTextWidth(text, font) {
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      context.font = font;
+      return context.measureText(text).width;
+    }
+
+    // Initial render
+    renderChart();
+
+    // Handle window resize
+    window.addEventListener('resize', renderChart);
+  </script>
+</body>
+</html>
