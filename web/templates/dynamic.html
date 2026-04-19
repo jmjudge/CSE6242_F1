@@ -23,8 +23,28 @@
 .input-error {
   border-color: #c53030 !important;
 }
+.race-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, auto);
+  grid-auto-flow: column;
+  gap: 1.5rem;
+}
 .race-field {
-  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.race-field > select,
+.race-field > input {
+  width: auto;
+  min-width: 320px;
+}
+@media (max-width: 720px) {
+  .race-grid {
+    grid-template-columns: 1fr;
+    grid-auto-flow: row;
+  }
 }
 </style>
 </head>
@@ -74,7 +94,7 @@
 
     <br/>
 
-    <div id="error-message" style="color: red; display: none;"></div>
+    <div id="error-message" style="color: #c53030; display: none; font-size: 1rem; width: 100%; text-align: center; margin: 0;"><i class="fa-solid fa-triangle-exclamation"></i> At least one race configuration must be provided.</div>
 
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <button id="submitBtn" class="button-text button-std-rect button-primary">Submit</button>
@@ -86,8 +106,7 @@
 </div>
 
 <form id="simulation-form" method="POST" action="{{ url_for('visualize_simulation') }}" target="simulation-iframe" style="display: none;">
-    <input type="hidden" id="year-input" name="year">
-    <input type="hidden" id="races-input" name="races">
+    <input type="hidden" id="config-input" name="config">
 </form>
 
 <iframe id="simulation-iframe" name="simulation-iframe" src="{{ url_for('visualize_simulation') }}" title="Description of content" style="width: 100%; height: 700px; border-radius: 7px; border: none;"></iframe>
@@ -123,30 +142,38 @@ function createRaceCard() {
 
     div.innerHTML = `
         <button class="close-btn">&times;</button>
-        <div class="race-field">
-            <label>Race</label>
-            <select class="race-select dropdown-normal">
-                <option value="">Select race</option>
-            </select>
-            <div class="field-error race-error"></div>
-        </div>
-        <div class="race-field">
-            <label>Driver</label>
-            <select class="driver-select dropdown-normal" disabled>
-                <option value="">Select race first</option>
-            </select>
-            <div class="field-error driver-error"></div>
-        </div>
-        <div class="race-field">
-            <label>DNF probability</label>
-            <input type="number" class="dnf-input text-entry" placeholder="0.0 - 1.0" min="0" max="1" step="0.01">
-            <div class="field-error dnf-error"></div>
+        <div class="race-grid">
+            <div class="race-field">
+                <label>Race</label>
+                <select class="race-select dropdown-normal">
+                    <option value="">Select race</option>
+                </select>
+                <div class="field-error race-error"></div>
+            </div>
+            <div class="race-field">
+                <label>Driver</label>
+                <select class="driver-select dropdown-normal" disabled>
+                    <option value="">Select race first</option>
+                </select>
+                <div class="field-error driver-error"></div>
+            </div>
+            <div class="race-field">
+                <label>DNF probability</label>
+                <input type="number" class="dnf-input text-entry" placeholder="0.0 - 1.0" min="0" max="1" step="0.01">
+                <div class="field-error dnf-error"></div>
+            </div>
+            <div class="race-field">
+                <label>Time Delay (sec)</label>
+                <input type="number" class="time-delay-input text-entry" placeholder="0 - 30" min="0" max="30" step="1">
+                <div class="field-error time-delay-error"></div>
+            </div>
         </div>
     `;
 
     const raceSelect = div.querySelector(".race-select");
     const driverSelect = div.querySelector(".driver-select");
     const dnfInput = div.querySelector(".dnf-input");
+    const timeDelayInput = div.querySelector(".time-delay-input");
 
     raceSelect.addEventListener("change", () => {
         clearFieldErrors(div);
@@ -158,6 +185,10 @@ function createRaceCard() {
     });
 
     dnfInput.addEventListener("input", () => {
+        clearFieldErrors(div);
+    });
+
+    timeDelayInput.addEventListener("input", () => {
         clearFieldErrors(div);
     });
 
@@ -192,16 +223,20 @@ yearSelect.addEventListener("change", () => {
     cards.forEach(card => {
         const raceSelect = card.querySelector(".race-select");
         const driverSelect = card.querySelector(".driver-select");
+        const dnfInput = card.querySelector(".dnf-input");
+        const timeDelayInput = card.querySelector(".time-delay-input");
         raceSelect.value = "";
         driverSelect.innerHTML = '<option value="">Select race first</option>';
         driverSelect.disabled = true;
+        dnfInput.value = "";
+        timeDelayInput.value = "";
         clearFieldErrors(card);
     });
     updateDriverOptions();
 });
 
 function showError(message) {
-    errorMessage.textContent = message;
+    // errorMessage.textContent = message;
     errorMessage.style.display = "block";
     setTimeout(() => {
         errorMessage.style.display = "none";
@@ -236,6 +271,15 @@ function clearFieldErrors(card) {
     }
     if (dnfInput) {
         dnfInput.classList.remove("input-error");
+    }
+    const timeDelayError = card.querySelector(".time-delay-error");
+    const timeDelayInputField = card.querySelector(".time-delay-input");
+    if (timeDelayError) {
+        timeDelayError.textContent = "";
+        timeDelayError.style.display = "none";
+    }
+    if (timeDelayInputField) {
+        timeDelayInputField.classList.remove("input-error");
     }
 }
 
@@ -324,13 +368,15 @@ submitBtn.addEventListener("click", () => {
         const raceSelect = card.querySelector(".race-select");
         const driverSelect = card.querySelector(".driver-select");
         const dnfInput = card.querySelector(".dnf-input");
+        const timeDelayInput = card.querySelector(".time-delay-input");
         const race = raceSelect.value;
         const driver = driverSelect.value;
         const dnfValue = dnfInput.value.trim();
+        const timeDelayValue = timeDelayInput.value.trim();
 
         clearFieldErrors(card);
 
-        if (!race && !driver && !dnfValue) {
+        if (!race && !driver && !dnfValue && !timeDelayValue) {
             continue; // ignore empty card
         }
 
@@ -359,7 +405,20 @@ submitBtn.addEventListener("click", () => {
             break;
         }
 
-        results.push({ race, driver, dnf });
+        if (timeDelayValue === "") {
+            setFieldError(card, "time-delay", "Enter a time delay.");
+            error = true;
+            break;
+        }
+
+        const timeDelay = parseFloat(timeDelayValue);
+        if (Number.isNaN(timeDelay) || timeDelay < 0 || timeDelay > 30) {
+            setFieldError(card, "time-delay", "Choose a value between 0 and 30 seconds.");
+            error = true;
+            break;
+        }
+
+        results.push({ race, driver, dnf, time_delay: timeDelay });
     }
 
     if (error) {
@@ -371,8 +430,7 @@ submitBtn.addEventListener("click", () => {
         return;
     }
 
-    document.getElementById("year-input").value = yearSelect.value;
-    document.getElementById("races-input").value = JSON.stringify(results);
+    document.getElementById("config-input").value = JSON.stringify({year: yearSelect.value, configs: results});
     form.submit();
 });
 
@@ -390,13 +448,16 @@ resetBtn.addEventListener("click", () => {
         input.value = "";
         input.classList.remove("input-error");
     });
+    document.querySelectorAll(".time-delay-input").forEach(input => {
+        input.value = "";
+        input.classList.remove("input-error");
+    });
     document.querySelectorAll(".field-error").forEach(el => {
         el.textContent = "";
         el.style.display = "none";
     });
     // Clear the form fields
-    document.getElementById("year-input").value = "";
-    document.getElementById("races-input").value = "";
+    document.getElementById("config-input").value = "";
     // Reload iframe to default state
     iframe.src = "{{ url_for('visualize_simulation') }}";
 });

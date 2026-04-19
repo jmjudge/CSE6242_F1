@@ -86,20 +86,23 @@ def historical_progression():
 def visualize_simulation():
     sim_results = None
     if request.method == "POST":
-        year = request.form.get("year")
-        races_str = request.form.get("races")
-        if races_str:
+        config_str = request.form.get("config")
+        if config_str:
             try:
-                races = json.loads(races_str)
+                config_data = json.loads(config_str)
+                year = config_data.get("year")
+                races = config_data.get("configs", [])
             except json.JSONDecodeError:
+                year = None
                 races = []
         else:
+            year = None
             races = []
 
         if year and races:
             df = load_master_driver_race_df()
             simulator = MonteCarloSimulator(df)
-            sim_results = simulator.simulate_configs(year, races, n_simulations=100)
+            sim_results = simulator.simulate_season(year, n_simulations=100, configs=races)
     else:
         year = None
         races = []

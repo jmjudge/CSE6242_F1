@@ -93,6 +93,7 @@
   display: flex;
   justify-content: center; /* center the button horizontally */
   align-items: center;     /* vertical center */
+  margin-bottom: 0;
 }
 
 .horizontal-divider::before {
@@ -136,8 +137,8 @@
     padding: 2rem;
     margin-bottom: 1rem;
     /* border: 1px solid var(--primary-gray-color); */
-    border: 2px solid var(--primary-btn-color);
-    border-radius: 11px;
+    border: 3px solid var(--secondary-btn-color);
+    border-radius: 12px;
 
     /* smooth appearance */
     opacity: 0;
