@@ -23,49 +23,81 @@
 <div class="">
 
 <div class="content">
-	<p>This page should be used to display the visualization after the simulations.  It will be embedded
-        into the /simulate page and display after the user runs the Monte Carlo simulation with the parameters they specified in /simulate.
-        
-        The workflow goes as follows:
 
-        index.html -> /simulate. Visualization, which is separate but embedded HTML file, is not visible. 
-        User enters parameters for up to 3 races for a selected season (year). User clicks "Run" -> 
-        editable parameters disappear.  Loading circle appears.  API request to run simulation with specified parameters. 
-        API responds with data for visualization (preferrably in JSON format).  Loading circle disappers.
-        Data is loaded into simulate_results.html from main.py.  Then, main.py tells /simulate that simulation has finished 
-        running and was sent.  /simulate unhides the embedded visualization page.
-        Reset button unhides.
-        User clicks reset button to hide visualization and show editable parameters.
+{% if sim_results %}
 
-    </p>
+<h2>Simulation Results for {{ sim_results.year }}</h2>
 
-    {% if sim_results %}
-        <h2>Simulation Results for {{ sim_results.year }}</h2>
-        <p>Ran {{ sim_results.n_simulations }} dummy Monte Carlo trials for {{ sim_results.total_races }} race configuration{{ sim_results.total_races != 1 and 's' or '' }}.</p>
-        <ul>
-            {% for result in sim_results.race_results %}
-                <li>
-                    <strong>{{ result.race }}</strong> — {{ result.driver }} — DNF {{ result.dnf }}
-                    — avg points {{ result.avg_points }} — win chance {{ result.win_chance }}
-                </li>
-            {% endfor %}
-        </ul>
-        <p>{{ sim_results.note }}</p>
-    {% elif races %}
-        <h2>Simulation Configurations Received</h2>
-        <ul>
-            {% for item in races %}
-                {% if item.race is defined %}
-                    <li>{{ item.race }} — {{ item.driver }} — DNF {{ item.dnf }}</li>
-                {% else %}
-                    <li>{{ item }}</li>
-                {% endif %}
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>This page should be used to display the visualization after the simulations. It will be embedded into the /simulate page and display after the user runs the Monte Carlo simulation with the parameters they specified in /simulate.</p>
-    {% endif %}
+<p><strong>CSI:</strong> {{ (sim_results.csi * 100) | round(2) }}%</p>
+
+<h3>Win Probabilities</h3>
+<ul>
+    {% for driver, prob in sim_results.win_probabilities.items() %}
+        <li>{{ driver }} — {{ (prob * 100) | round(2) }}%</li>
+    {% endfor %}
+</ul>
+
+<h3>Champion Counts</h3>
+<ul>
+    {% for driver, count in sim_results.champion_counts.items() %}
+        <li>{{ driver }} — {{ count }}</li>
+    {% endfor %}
+</ul>
+
+<p><strong>Simulations:</strong> {{ sim_results.n_simulations }}</p>
+
+<div class="chart-card">
+  <h2>Average Simulated Cumulative Points</h2>
+  <canvas id="avgCumulativePointsChart" width="800" height="360"></canvas>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  const cumulativePointsData = {{ sim_results.cumulative_points | tojson | safe }};
+  const raceLabelsData = {{ sim_results.race_labels | tojson | safe }};
+
+  if (!Array.isArray(cumulativePointsData) || !cumulativePointsData.length) {
+    return;
+  }
+
+  const datasets = cumulativePointsData.map(series => ({
+    label: series.driver_name,
+    data: series.points_by_race.map(point => point.cumulative_points),
+    fill: false,
+    tension: 0.25,
+    borderWidth: 2,
+    pointRadius: 3
+  }));
+
+  const ctx = document.getElementById('avgCumulativePointsChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: raceLabelsData,
+      datasets
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true,
+          text: 'Average Simulated Cumulative Points per Driver'
+        },
+        legend: { position: 'bottom' }
+      },
+      scales: {
+        x: { title: { display: true, text: 'Race' } },
+        y: { title: { display: true, text: 'Cumulative Points' }, beginAtZero: true }
+      }
+    }
+  });
+})();
+</script>
+
+{% else %}
+<p>No simulation results available.</p>
+{% endif %}</div>
 
 </div>
 

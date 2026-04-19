@@ -358,6 +358,60 @@
     </div>
   </div>
 
+  <!-- static CSI visual --> 
+  <section style="margin-top: 32px;">
+    <h2 style="color: var(--border); font-family: var(--body-font-family); margin-bottom: 12px;">Baseline Simulation CSI</h2>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start;">
+      <div style="min-width: 220px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px;">
+        <div style="font-size: 2.4rem; font-weight: 700; color: var(--accent);">
+          {{ (baseline_sim.csi * 100) | round(2) }}%
+        </div>
+        <div style="margin-top: 8px; font-size: 0.95rem; color: var(--muted);">
+          CSI for {{ baseline_sim.year }} ({{ baseline_sim.n_simulations }} runs)
+        </div>
+      </div>
+
+      <div style="max-width: 260px; width: 100%;">
+        <canvas id="baselineCsiChart" width="260" height="260"></canvas>
+      </div>
+
+    </div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script>
+  (function() {
+    const csi = {{ baseline_sim.csi | round(4) }};
+
+    const donutCtx = document.getElementById("baselineCsiChart")?.getContext("2d");
+    if (donutCtx) {
+      new Chart(donutCtx, {
+        type: "doughnut",
+        data: {
+          labels: ["CSI", "Champion probability"],
+          datasets: [{
+            data: [csi, 1 - csi],
+            backgroundColor: ["#6366f1", "#60a5fa"],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          plugins: {
+            title: { display: true, text: "Baseline CSI for selected season" },
+            legend: { position: "bottom" }
+          },
+          cutout: "70%",
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      });
+    }
+
+  
+  })();
+  </script>
+
   <script>
     /* all F1 seasons from 2010–2024. Each season has:
          - races: array of race names in order
@@ -391,7 +445,8 @@
       dimmedDrivers.clear();
 
       const W = container.clientWidth;
-      const H = 0.9 * (container.clientHeight);
+    /*  const H = 0.9 * (container.clientHeight); */
+      const H = container.clientHeight;
       const margin = { top: 20, right: 50, bottom: 60, left: 52 };
       const w = W - margin.left - margin.right;
       const h = H - margin.top - margin.bottom;
@@ -594,13 +649,19 @@
         const opt = document.createElement('option');
         opt.value = y;
         opt.textContent = y;
-        if (y === '2024') opt.selected = true;
+      /*  if (y === '2024') opt.selected = true; */
+        if (y === '{{ year }}') opt.selected = true;
         select.appendChild(opt);
       });
 
-    select.addEventListener('change', () => render(select.value));
+  /* original event listener. updated one below reloads page whenver selection changes 
+  so CSI is re-rendered
+  select.addEventListener('change', () => render(select.value));
+  */
+    select.addEventListener('change', () => window.location.href = `/historical-progression?year=${select.value}`);
 
-    render('2024');
+  /*  render('2024'); */
+  render('{{ year }}');
 
     window.addEventListener('resize', () => render(select.value));
   </script>

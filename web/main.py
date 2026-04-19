@@ -9,6 +9,43 @@ from src.monte_carlo import MonteCarloSimulator
 
 app = Flask(__name__)
 
+def compute_baseline_simulation(year, n_simulations=200):
+    df = load_master_driver_race_df()
+    simulator = MonteCarloSimulator(df)
+    return simulator.simulate_season(year, n_simulations=n_simulations)
+
+@app.route("/historical-progression")
+def historical_progression():
+    df = load_master_driver_race_df()
+    year = request.args.get("year", default=int(df["year"].max()), type=int)
+
+    baseline_sim = compute_baseline_simulation(year, n_simulations=200)
+
+    data = load_f1_data()
+
+    return render_template(
+        "f1_season_progression.html",
+        year=year,
+        baseline_sim=baseline_sim,
+        data=data
+    )
+
+# for the static CSI visualization
+def compute_baseline_csi_by_year(n_simulations=100):
+    df = load_master_driver_race_df()
+    simulator = MonteCarloSimulator(df)
+
+    years = sorted(df["year"].dropna().astype(int).unique())
+    results = []
+    for y in years:
+        sim = simulator.simulate_season(int(y), n_simulations=n_simulations)
+        results.append({
+            "year": int(y),
+            "csi": float(sim["csi"])
+        })
+        return results
+
+
 def load_f1_data():
     csv_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'processed', 'master_driver_race.csv')
     df = pd.read_csv(csv_path)
@@ -77,10 +114,10 @@ def index():
 def static_page():
     return render_template("static.html")
 
-@app.route("/historical-progression")
-def historical_progression():
-    data = load_f1_data()
-    return render_template("f1_season_progression.html", data=data)
+# @app.route("/historical-progression")
+# def historical_progression():
+#    data = load_f1_data()
+#    return render_template("f1_season_progression.html", data=data)
 
 @app.route("/simulation-results", methods=["GET", "POST"])
 def visualize_simulation():
@@ -100,9 +137,51 @@ def visualize_simulation():
             races = []
 
         if year and races:
+          #  df = load_master_driver_race_df()
+          #  simulator = MonteCarloSimulator(df)
+          ##  sim_results = simulator.simulate_season(year, n_simulations=100, configs=races)
+            from src.CounterfactualEngine import CounterfactualEngine
+
             df = load_master_driver_race_df()
+
+            year = int(year)
+            year_df = df[df['year'] == year].copy()
+
+            race_lookup = year_df[['raceId', 'race_name']].drop_duplicates().set_index('race_name')['raceId'].to_dict()
+            driver_lookup = year_df[['driverId', 'driver_name']].drop_duplicates().set_index('driver_name')['driverId'].to_dict()
+
+            scenarios_df = pd.DataFrame(races)
+            scenarios_df['raceId'] = scenarios_df['race'].map(race_lookup)
+            scenarios_df['driverId'] = scenarios_df['driver'].map(driver_lookup)
+
+            if scenarios_df[['raceId', 'driverId']].isnull().any().any():
+                raise ValueError("Invalid race or driver selection for the selected season.")
+
+            scenarios_df = scenarios_df[['raceId', 'driverId', 'dnf', 'time_delay']].copy()
+            scenarios_df = scenarios_df.rename(columns={
+                'dnf': 'dnf_prob',
+                'time_delay': 'time_delay'
+            })
+
+
+            print("FINAL SCENARIOS DF (ENGINE INPUT):")
+            print(scenarios_df)
+            print(scenarios_df.columns)
+
+            # 2. Apply counterfactual changes
+            engine = CounterfactualEngine(df)
+            engine.apply_scenarios(scenarios_df)
+            df_modified = engine.get_counterfactual_data()
+
+            # 3. Run Monte Carlo on modified data
             simulator = MonteCarloSimulator(df)
-            sim_results = simulator.simulate_season(year, n_simulations=100, configs=races)
+            sim_results = simulator.simulate_season(
+                year=year,
+                n_simulations=100,
+                df_override=df_modified
+
+                
+            )
     else:
         year = None
         races = []
