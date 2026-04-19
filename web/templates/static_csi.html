@@ -195,6 +195,13 @@
 
     .tooltip-row span:last-child { color: var(--text); }
 
+    .axis-label {
+      fill: var(--muted);
+      font-family: var(--body-font-family);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
     .bar {
       transition: fill 0.15s;
     }
@@ -209,11 +216,11 @@
   <header style="display: none;">
     <div class="logo-mark"></div>
     <div>
-      <h1>F1 Championship <span>Stability</span> Index</h1>
+      <h1>F1 Championship <span>Sensitivity</span> Index</h1>
       <div class="subtitle">Team 75 · CSE 6242 · CSI Analysis</div>
     </div>
   </header>
-  <h2 style="color: var(--border); font-family: var(--body-font-family); margin-bottom: 12px; padding: 16px 40px;">Championship Stability Index (CSI) by Season</h2>
+  <h2 style="color: var(--border); font-family: var(--body-font-family); margin-bottom: 12px; padding: 16px 40px;">Championship Sensitivity Index (CSI) by Season</h2>
 
   <!-- <div class="controls">
     <div class="stat-bar">
@@ -239,7 +246,7 @@
     <div class="sidebar">
       <div class="sidebar-title">About CSI</div>
       <div style="font-family: var(--body-font-family); font-size: 11px; color: var(--muted); line-height: 1.5;">
-        <p>The Championship Stability Index (CSI) measures how stable a season's championship outcome was. Lower CSI values indicate more stable seasons where the champion was likely to win.</p>
+        <p>The Championship Sensitivity Index (CSI) measures how volatile a season's championship outcome was. Lower CSI values indicate more stable seasons where the champion was likely to win.</p>
         <p>CSI = 1 - (champion's win probability)</p>
         <p>Values range from 0 (perfect stability) to 1 (maximum instability).</p>
       </div>
@@ -289,6 +296,13 @@
         .attr('class', 'axis')
         .attr('transform', `translate(0,${h})`)
         .call(d3.axisBottom(x).ticks(5).tickFormat(d => d.toFixed(2)));
+
+      g.append('text')
+        .attr('class', 'axis-label')
+        .attr('x', w / 2)
+        .attr('y', h + 40)
+        .attr('text-anchor', 'middle')
+        .text('Championship Sensitivity Index (CSI)');
 
       // Grid
       g.append('g')

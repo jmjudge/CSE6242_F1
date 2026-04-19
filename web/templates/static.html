@@ -42,6 +42,13 @@
     </p>
     <br/>
     <iframe src="{{ url_for('historical_progression') }}" title="F1 Historical Progression" style="width: 100%; height: 700px; border-radius: 7px; border: none;"></iframe>
+    
+    <h2 class="heading">Simulated Outcomes</h2>
+    <p>Our team has developed a way to recompute the championship standings for a given season assuming certain conditions are true, including a "Did Not Finish" 
+        (DNF) probability.  Using a 10% probability of every driver not finishing in a race, our team has re-run a simulation for each race from 2014 to 2024 and recomputed the 
+        championship standings for that season.  Additionally, here we introduce our new metric: the Championship Sensitivity Index (CSI).  This can be thought of 
+        as a measure of how volatile the championship standings were for a given year, assuming the parameters specified were true.
+    </p>
     <iframe src="{{ url_for('csi_analysis') }}" title="CSI Analysis" style="width: 100%; height: 600px; border-radius: 7px; border: none;"></iframe>
 
 </div>
