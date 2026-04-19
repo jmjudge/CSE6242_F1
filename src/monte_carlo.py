@@ -58,10 +58,13 @@ class MonteCarloSimulator:
 
         return df_updated
 
-    def simulate_season(self, year, n_simulations=100, df_override=None):
+    def simulate_season(self, year, n_simulations=100, df_override=None, configs=None):
         # simulates the f1 season using monte carlo. 
-        # inputs: year, n_simulations, df_override (optional pandas dataframe with the user's counterfactual modifications)
+        # inputs: year, n_simulations, df_override (optional pandas dataframe with the user's counterfactual modifications), configs (list of counterfactual configs)
         # returns dict with win probability, champion counts, CSI
+
+        if configs is not None:
+            return self.simulate_configs(year, configs, n_simulations)
 
         import numpy as np
         import pandas as pd
