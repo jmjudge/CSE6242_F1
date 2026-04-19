@@ -233,6 +233,13 @@
       font-size: 11px;
     }
 
+    .axis-label {
+      fill: var(--muted);
+      font-family: var(--body-font-family);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
     .axis line, .axis path {
       stroke: var(--border);
     }
@@ -440,6 +447,13 @@
         .attr('transform', 'rotate(-40)')
         .style('font-size', '10px')
         .style('fill', 'var(--muted)');
+
+      xAxis.append('text')
+        .attr('class', 'axis-label')
+        .attr('x', w / 2)
+        .attr('y', 67.5)
+        .attr('text-anchor', 'middle')
+        .text('Race (Country)');
 
       g.append('g')
         .attr('class', 'axis')
