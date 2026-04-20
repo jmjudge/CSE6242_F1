@@ -82,11 +82,30 @@ def historical_progression():
     data = load_f1_data()
     return render_template("f1_season_progression.html", data=data)
 
+@app.route("/csi-analysis")
+def csi_analysis():
+    # Load CSI data from summary.json
+    summary_path = os.path.join(os.path.dirname(__file__), '..', 'outputs', 'simulations', 'summary.json')
+    with open(summary_path, 'r') as f:
+        csi_data = json.load(f)
+    
+    # Calculate stats
+    csi_values = [d['csi'] for d in csi_data]
+    avg_csi = sum(csi_values) / len(csi_values) if csi_values else 0
+    min_csi = min(csi_values) if csi_values else 0
+    max_csi = max(csi_values) if csi_values else 0
+    
+    return render_template("static_csi.html", 
+                         csi_data=csi_data,
+                         avg_csi=avg_csi,
+                         min_csi=min_csi,
+                         max_csi=max_csi)
+
 @app.route("/simulation-results", methods=["GET", "POST"])
 def visualize_simulation():
     sim_results = None
     if request.method == "POST":
-        config_str = request.form.get("config")
+        config_str = request.form.get("config")   ## this is the user-submitted data from the form in dynamic.html as a JSON object
         if config_str:
             try:
                 config_data = json.loads(config_str)
