@@ -11,7 +11,7 @@ Usage:
 
 Raw files required (all from Ergast F1 Kaggle dataset):
     races.csv, results.csv, drivers.csv, constructors.csv,
-    driver_standings.csv, status.csv
+    driver_standings.csv, status.csv, pit_stops.csv
 """
 
 import argparse
@@ -23,13 +23,6 @@ import pandas as pd
 # DNF classification
 # ---------------------------------------------------------------------------
 
-# Statuses that are NOT a DNF:
-#   - Finished
-#   - +N Laps  (lapped but classified finisher)
-#   - Did not qualify / Did not prequalify
-#   - Disqualified
-#   - Not classified
-#   - Withdrew  (did not start, not a race DNF)
 NON_DNF_PATTERNS = [
     "Finished",
     "Did not qualify",
@@ -49,6 +42,36 @@ def classify_dnf(status_df: pd.DataFrame) -> set:
 
 
 # ---------------------------------------------------------------------------
+# Finishing time imputation
+# ---------------------------------------------------------------------------
+
+def impute_finishing_times(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Impute null finishing_time_seconds for classified finishers only.
+    Strategy: max finishing time in that race + 0.5% gap per position delta.
+    DNFs remain null since they're already blank.
+    """
+    df = df.copy()
+
+    def impute_race(group):
+        max_time = group["finishing_time_seconds"].max()
+        if pd.isna(max_time):
+            return group  # no times recorded for this race, skip
+
+        last_known_pos = group.loc[group["finishing_time_seconds"].notna(), "positionOrder"].max()
+
+        def estimate_time(row):
+            pos_delta = row["positionOrder"] - last_known_pos
+            return max_time * (1 + 0.001 * pos_delta)
+
+        mask = group["finishing_time_seconds"].isna() & ~group["is_dnf"]
+        group.loc[mask, "finishing_time_seconds"] = group.loc[mask].apply(estimate_time, axis=1)
+        return group
+
+    return df.groupby("raceId", group_keys=False).apply(impute_race)
+
+
+# ---------------------------------------------------------------------------
 # Main pipeline
 # ---------------------------------------------------------------------------
 
@@ -60,6 +83,7 @@ def build_master(data_dir: str, out_dir: str) -> None:
     constructors = pd.read_csv(os.path.join(data_dir, "constructors.csv"))
     driver_standings = pd.read_csv(os.path.join(data_dir, "driver_standings.csv"))
     status = pd.read_csv(os.path.join(data_dir, "status.csv"))
+    pit_stops = pd.read_csv(os.path.join(data_dir, "pit_stops.csv"))
 
     # -- Slim down columns before merging -----------------------------------
     races = races[["raceId", "year", "round", "name", "date"]].rename(
@@ -79,16 +103,10 @@ def build_master(data_dir: str, out_dir: str) -> None:
             "positionText": "championship_position_text",
             "wins": "cumulative_wins",
         }
-    )[
-        [
-            "raceId",
-            "driverId",
-            "cumulative_points",
-            "championship_position",
-            "championship_position_text",
-            "cumulative_wins",
-        ]
-    ]
+    )[[
+        "raceId", "driverId", "cumulative_points",
+        "championship_position", "championship_position_text", "cumulative_wins",
+    ]]
 
     # -- DNF flag -----------------------------------------------------------
     dnf_status_ids = classify_dnf(status)
@@ -114,41 +132,50 @@ def build_master(data_dir: str, out_dir: str) -> None:
     ]
     df[sentinel_cols] = df[sentinel_cols].replace("\\N", pd.NA)
 
+    # Convert milliseconds to seconds
+    df["finishing_time_seconds"] = pd.to_numeric(df["milliseconds"], errors="coerce") / 1000
+
+    # -- Pit stop aggregation -----------------------------------------------
+    pit_agg = pit_stops.groupby(["raceId", "driverId"]).agg(
+        total_pit_stops=("stop", "count"),
+        total_pit_stop_duration_sec=("duration", lambda x: pd.to_numeric(x, errors="coerce").sum())
+    ).reset_index()
+
+    df = df.merge(pit_agg, on=["raceId", "driverId"], how="left")
+
     # -- Select and order final columns ------------------------------------
     master = df[[
         "year", "round", "raceId", "race_name", "date",
         "driverId", "driverRef", "driver_name", "nationality",
         "constructorId", "constructor_ref", "constructor_name",
         "grid", "positionOrder", "positionText", "points",
-        "laps", "statusId", "status", "is_dnf",
+        "laps", "finishing_time_seconds", "total_pit_stops",
+        "total_pit_stop_duration_sec", "statusId", "status", "is_dnf",
         "championship_position", "championship_position_text",
         "cumulative_points", "cumulative_wins",
         "fastestLapTime", "fastestLapSpeed",
     ]].sort_values(["year", "round", "positionOrder"]).reset_index(drop=True)
 
+    # -- Impute missing finishing times -------------------------------------
+    master = impute_finishing_times(master)
+
     # -- Season championship summary ---------------------------------------
-    # Final standing = last round entry per driver per season
     season_summary = (
         master
         .sort_values("round")
         .groupby(["year", "driverId"])
         .last()
         .reset_index()
-    )[
-        [
-            "year", "driverId", "driverRef", "driver_name", "nationality",
-            "constructorId", "constructor_name",
-            "championship_position", "cumulative_points", "cumulative_wins",
-        ]
-    ].sort_values(["year", "championship_position"]).reset_index(drop=True)
+    )[[
+        "year", "driverId", "driverRef", "driver_name", "nationality",
+        "constructorId", "constructor_name",
+        "championship_position", "cumulative_points", "cumulative_wins",
+    ]].sort_values(["year", "championship_position"]).reset_index(drop=True)
 
     # -- Save ---------------------------------------------------------------
     os.makedirs(out_dir, exist_ok=True)
-    master_path = os.path.join(out_dir, "master_driver_race.csv")
-    summary_path = os.path.join(out_dir, "season_championship_summary.csv")
-
-    master.to_csv(master_path, index=False)
-    season_summary.to_csv(summary_path, index=False)
+    master.to_csv(os.path.join(out_dir, "master_driver_race.csv"), index=False)
+    season_summary.to_csv(os.path.join(out_dir, "season_championship_summary.csv"), index=False)
 
     # -- Report -------------------------------------------------------------
     print(f"\n✓ master_driver_race.csv")
@@ -181,15 +208,7 @@ def build_master(data_dir: str, out_dir: str) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Build F1 master datasets.")
-    parser.add_argument(
-        "--data_dir",
-        default="./data/raw",
-        help="Directory containing raw Ergast CSV files (default: ./data/raw)",
-    )
-    parser.add_argument(
-        "--out_dir",
-        default="./data/processed",
-        help="Output directory for processed CSVs (default: ./data/processed)",
-    )
+    parser.add_argument("--data_dir", default="./data/raw")
+    parser.add_argument("--out_dir", default="./data/processed")
     args = parser.parse_args()
     build_master(args.data_dir, args.out_dir)
