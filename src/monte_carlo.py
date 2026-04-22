@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from collections import defaultdict
 
 class MonteCarloSimulator:
     def __init__(self, df):
@@ -9,12 +10,34 @@ class MonteCarloSimulator:
         self.df = df.copy()
 
         self.dnf_prob = 0.1  # tweak this val later if needed
-        # scoring/points system for race e.g., first place = 25 pts
+
+        # scoring system (F1 points)
         self.points_system = {
-        1: 25, 2: 18, 3: 15, 4: 12, 5: 10,
-        6: 8, 7: 6, 8: 4, 9: 2, 10: 1
-}
-        
+            1: 25, 2: 18, 3: 15, 4: 12, 5: 10,
+            6: 8, 7: 6, 8: 4, 9: 2, 10: 1
+        }
+
+    def _build_race_labels(self, df_year):
+        if 'race_round' in df_year.columns:
+            order = df_year.drop_duplicates('raceId').set_index('raceId')['race_round']
+        elif 'round' in df_year.columns:
+            order = df_year.drop_duplicates('raceId').set_index('raceId')['round']
+        else:
+            order = pd.Series(
+                data=range(1, len(df_year['raceId'].unique()) + 1),
+                index=sorted(df_year['raceId'].unique())
+            )
+
+        labels = {}
+        for race_id, race_order in order.items():
+            label = (
+                df_year.loc[df_year['raceId'] == race_id, 'raceName'].iloc[0]
+                if 'raceName' in df_year.columns else f"Race {int(race_order)}"
+            )
+            labels[race_id] = {"order": int(race_order), "label": str(label)}
+
+        return labels
+
     def apply_random_dnf(self, df_race, dnf_prob=0.05):
         """
         Randomly assign DNFs to drivers in a race.
@@ -35,86 +58,117 @@ class MonteCarloSimulator:
         """
         df_race = df_race.copy()
 
-        # Separate finishers and DNFs
         finishers = df_race[df_race['is_dnf'] == False].copy()
         dnfs = df_race[df_race['is_dnf'] == True].copy()
 
-        # Re-rank finishers
         finishers = finishers.sort_values('positionOrder')
         finishers['positionOrder'] = range(1, len(finishers) + 1)
 
-        # points/scorring mapping
-        points_map = {
-            1: 25, 2: 18, 3: 15, 4: 12, 5: 10,
-            6: 8, 7: 6, 8: 4, 9: 2, 10: 1
-        }
-
-        finishers['points'] = finishers['positionOrder'].map(points_map).fillna(0)
-
-        # DNF = 0pts
+        finishers['points'] = finishers['positionOrder'].map(self.points_system).fillna(0)
         dnfs['points'] = 0
 
-        df_updated = pd.concat([finishers, dnfs])
-
-        return df_updated
+        return pd.concat([finishers, dnfs])
 
     def simulate_season(self, year, n_simulations=100, df_override=None, configs=None):
-        # simulates the f1 season using monte carlo. 
-        # inputs: year, n_simulations, df_override (optional pandas dataframe with the user's counterfactual modifications), configs (list of counterfactual configs)
-        # returns dict with win probability, champion counts, CSI
+        """
+        Monte Carlo season simulation
+        """
 
+        # counterfactual mode (unchanged)
         if configs is not None:
             return self.simulate_configs(year, configs, n_simulations)
 
-        import numpy as np
-        import pandas as pd
-
         if df_override is not None:
-            df_year = df_override.copy()
+            df_year = df_override[df_override["year"] == int(year)].copy()
         else:
-            df_year = self.df[self.df['year'] == year].copy()
+            df_year = self.df[self.df["year"] == int(year)].copy()
+
+        if df_year.empty:
+            raise ValueError(f"No data found for year {year}")
+
+        df_year['scenario_dnf_prob'] = df_year.get('scenario_dnf_prob', np.nan)
+      ##  df_year['scenario_time_delay'] = df_year.get('scenario_time_delay', np.nan)
+
+        race_labels = self._build_race_labels(df_year)
+        cumulative_point_sums = defaultdict(float)
+        cumulative_point_counts = defaultdict(int)
+
+        print("YEAR:", year)
+        print("ROWS:", len(df_year))
+        print("Drivers:", df_year["driver_name"].nunique())
+        print(df_year["driver_name"].value_counts().head(10))
+        print(df_year[["driver_name", "positionOrder"]].head(20))
 
         champion_counts = {}
+
+        # DRIVER BASELINE STRENGTH... lower = better driver historically
+        driver_strength = (
+            df_year.groupby("driverId")["positionOrder"]
+            .mean()
+            .to_dict()
+        )
 
         for _ in range(n_simulations):
             sim_df = df_year.copy()
 
-            # simulate & randomly assigned the dnfs 
-            dnf_mask = np.random.rand(len(sim_df)) < self.dnf_prob
-            sim_df.loc[dnf_mask, 'is_dnf'] = True
+            # attach driver strength
+            sim_df["strength"] = sim_df["driverId"].map(driver_strength)
 
-            # adjust positions for dnfs. dnfs go to the bottom rankings
-            sim_df['sim_position'] = sim_df['positionOrder']
-            sim_df.loc[sim_df['is_dnf'] == True, 'sim_position'] = 999
+            # RANDOM DNFs (with scenario overrides)
+            dnf_probabilities = np.where(
+                sim_df['scenario_dnf_prob'].notna(),
+                sim_df['scenario_dnf_prob'],
+                self.dnf_prob
+            )
+            dnf_mask = np.random.rand(len(sim_df)) < dnf_probabilities
+            sim_df.loc[dnf_mask, "is_dnf"] = True
 
-            # Re-rank for each race
-            sim_df['sim_position'] = sim_df.groupby(['raceId'])['sim_position'] \
-                .rank(method='first')
-            # Re-calculate points based on re-rank
-            sim_df['sim_points'] = sim_df['sim_position'].map(self.points_system).fillna(0)
+            # PERFORMANCE MODEL
+            noise = np.random.normal(0, 1.5, len(sim_df))
 
-            # get the season standings
-            standings = sim_df.groupby('driverId')['sim_points'].sum()
+     #       delay_noise = np.random.normal(0, 0.1, len(sim_df))
+     #       sim_df["sim_time_delay"] = (
+     #           sim_df["scenario_time_delay"].fillna(0.0) + delay_noise
+     #       ).clip(lower=0.0)
 
+            sim_df["sim_score"] = sim_df["strength"] + noise ## + sim_df["sim_time_delay"]
+            # DNFs go to back
+            sim_df.loc[sim_df["is_dnf"], "sim_score"] = 999
+
+            # RACE RANKING
+            sim_df["sim_position"] = sim_df.groupby("raceId")["sim_score"] \
+                .rank(method="first", ascending=True)
+
+            # POINTS
+            sim_df["sim_points"] = sim_df["sim_position"].map(self.points_system).fillna(0)
+
+            sim_df = sim_df.sort_values(['raceId', 'sim_position'])
+            sim_df['cumulative_points'] = sim_df.groupby('driverId')['sim_points'].cumsum()
+
+            for _, row in sim_df[['raceId', 'driverId', 'cumulative_points']].iterrows():
+                key = (row['driverId'], row['raceId'])
+                cumulative_point_sums[key] += float(row['cumulative_points'])
+                cumulative_point_counts[key] += 1
+
+            # SEASON STANDINGS
+            standings = sim_df.groupby("driverId")["sim_points"].sum()
             champion = int(standings.idxmax())
-
             champion_counts[champion] = champion_counts.get(champion, 0) + 1
 
-        # GET WIN PROBABILITIES 
+        # WIN PROBABILITIES
         win_probabilities = {
             int(driver): count / n_simulations
             for driver, count in champion_counts.items()
         }
 
-        # GET CSI
         max_prob = max(win_probabilities.values())
         csi = 1 - max_prob
 
-        # Map the driver id to the driver name
+        # DRIVER NAME MAPPING
         driver_map = (
-            df_year[['driverId', 'driver_name']]
+            df_year[["driverId", "driver_name"]]
             .drop_duplicates()
-            .set_index('driverId')['driver_name']
+            .set_index("driverId")["driver_name"]
             .to_dict()
         )
 
@@ -128,7 +182,6 @@ class MonteCarloSimulator:
             for driver, prob in win_probabilities.items()
         }
 
-        # Sort by win prob desc
         win_probabilities_named = dict(
             sorted(win_probabilities_named.items(), key=lambda x: x[1], reverse=True)
         )
@@ -137,21 +190,48 @@ class MonteCarloSimulator:
             sorted(champion_counts_named.items(), key=lambda x: x[1], reverse=True)
         )
 
-        # OUTPUT
+        cumulative_points = []
+        for driver_id, driver_name in driver_map.items():
+            points_by_race = []
+            for race_id in sorted(race_labels.keys(), key=lambda rid: race_labels[rid]['order']):
+                key = (driver_id, race_id)
+                total = cumulative_point_sums.get(key, 0.0)
+                count = cumulative_point_counts.get(key, 0)
+                avg_points = float(round(total / max(count, 1), 2))
+                points_by_race.append({
+                    "race_id": race_id,
+                    "race_order": race_labels[race_id]['order'],
+                    "race_label": race_labels[race_id]['label'],
+                    "cumulative_points": avg_points
+                })
+
+            cumulative_points.append({
+                "driver_id": int(driver_id),
+                "driver_name": driver_name,
+                "points_by_race": points_by_race
+            })
+
+        race_labels_sorted = [
+            race_labels[rid]['label']
+            for rid in sorted(race_labels.keys(), key=lambda rid: race_labels[rid]['order'])
+        ]
+
         return {
             "year": int(year),
             "n_simulations": int(n_simulations),
             "win_probabilities": win_probabilities_named,
             "champion_counts": champion_counts_named,
-            "csi": float(csi)
+            "csi": float(csi),
+            "race_labels": race_labels_sorted,
+            "cumulative_points": cumulative_points
         }
 
     def simulate_configs(self, year, configs, n_simulations=100):
         """
-        Dummy counterfactual simulation for the selected race configurations.
-        This returns randomly generated values for testing the submit and render path.
+        Dummy counterfactual simulation for UI testing
         """
         results = []
+
         for config in configs:
             results.append({
                 "race": config.get("race"),

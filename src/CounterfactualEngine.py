@@ -22,9 +22,19 @@ class CounterfactualEngine:
         if scenarios_df['raceId'].duplicated().any():
             raise ValueError("Only 1 change allowed per race")
 
-        valid_types = {'dnf', 'pit_time', 'pit_count'}
-        if not scenarios_df['change_type'].isin(valid_types).all():
-            raise ValueError(f"Invalid change_type. Must be one of {valid_types}")
+        if not scenarios_df['driverId'].notna().all():
+            raise ValueError("Each scenario must include a valid driverId")
+
+        dnf_probs = pd.to_numeric(scenarios_df['dnf_prob'], errors='coerce')
+        if dnf_probs.isna().any() or not dnf_probs.between(0.0, 1.0).all():
+            raise ValueError("dnf_prob must be a number between 0 and 1")
+
+        time_delays = pd.to_numeric(scenarios_df['time_delay'], errors='coerce')
+        if time_delays.isna().any() or not time_delays.between(0.0, 5.0).all():
+            raise ValueError("time_delay must be a number between 0 and 5 seconds")
+
+        scenarios_df['dnf_prob'] = dnf_probs
+        scenarios_df['time_delay'] = time_delays
 
     # Helper methods
 
@@ -99,6 +109,25 @@ class CounterfactualEngine:
 
         return race_df
 
+    def _apply_scenario(self, race_df, driver_id, dnf_prob, time_delay):
+        race_df = race_df.copy()
+        race_df['scenario_dnf_prob'] = race_df.get('scenario_dnf_prob', np.nan)
+        race_df['scenario_time_delay'] = race_df.get('scenario_time_delay', np.nan)
+
+        if pd.notna(dnf_prob):
+            race_df.loc[
+                race_df['driverId'] == driver_id,
+                'scenario_dnf_prob'
+            ] = float(dnf_prob)
+
+        if pd.notna(time_delay):
+            race_df.loc[
+                race_df['driverId'] == driver_id,
+                'scenario_time_delay'
+            ] = float(time_delay)
+
+        return race_df
+
     # Recompute race standings
 
     def recompute_race(self, race_df):
@@ -125,35 +154,20 @@ class CounterfactualEngine:
 
         return pd.concat([finishers, dnfs])
 
-    # Apply changes based on change type
+    # Apply per-race scenario overrides
 
     def apply_change(self, row):
         race_id = row['raceId']
         driver_id = row['driverId']
-
         race_df = self._get_race(race_id)
 
-        if row['change_type'] == 'dnf':
-            race_df = self._apply_dnf(race_df, driver_id, row['is_dnf'])
+        race_df = self._apply_scenario(
+            race_df,
+            driver_id,
+            row.get('dnf_prob'),
+            row.get('time_delay')
+        )
 
-        elif row['change_type'] == 'pit_time':
-            race_df = self._apply_pit_time(
-                race_df,
-                driver_id,
-                row['delta_seconds']
-            )
-
-        elif row['change_type'] == 'pit_count':
-            race_df = self._apply_pit_count(
-                race_df,
-                driver_id,
-                row['new_count']
-            )
-
-        else:
-            raise ValueError(f"Unsupported change_type: {row['change_type']}")
-
-        race_df = self.recompute_race(race_df)
         self._replace_race(race_id, race_df)
 
     # Applying scenarios based on user input
