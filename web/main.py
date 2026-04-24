@@ -156,9 +156,6 @@ def visualize_simulation():
             races = []
 
         if year and races:
-          #  df = load_master_driver_race_df()
-          #  simulator = MonteCarloSimulator(df)
-          ##  sim_results = simulator.simulate_season(year, n_simulations=100, configs=races)
             from src.CounterfactualEngine import CounterfactualEngine
 
             df = load_master_driver_race_df()

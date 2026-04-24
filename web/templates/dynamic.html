@@ -35,16 +35,42 @@
   flex-direction: column;
   align-items: flex-start;
 }
-.race-field > select,
-.race-field > input {
-  width: auto;
-  min-width: 320px;
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 10, 15, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  border-radius: 7px;
 }
-@media (max-width: 720px) {
-  .race-grid {
-    grid-template-columns: 1fr;
-    grid-auto-flow: row;
-  }
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.loading-gif {
+  width: 48px;
+  height: 48px;
+}
+
+.loading-text {
+  color: var(--text);
+  font-family: var(--body-font-family);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.iframe-container {
+  position: relative;
 }
 </style>
 </head>
@@ -109,7 +135,15 @@
     <input type="hidden" id="config-input" name="config">
 </form>
 
-<iframe id="simulation-iframe" name="simulation-iframe" src="{{ url_for('visualize_simulation') }}" title="Description of content" style="width: 100%; height: 700px; border-radius: 7px; border: none;"></iframe>
+<div class="iframe-container" id="iframe-container" style="display: none;">
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="loading-content">
+            <img src="{{ url_for('static', filename='Loading_icon.gif') }}" alt="Loading" class="loading-gif">
+            <div class="loading-text">Loading</div>
+        </div>
+    </div>
+    <iframe id="simulation-iframe" name="simulation-iframe" src="{{ url_for('visualize_simulation') }}" title="Description of content" scrolling="no" style="width: 100%; height: 600px; overflow: hidden; visibility: hidden; border-radius: 7px; border: none;"></iframe>
+</div>
 
 
 <!-- <div class="wrapper-card copyright-disclaimer-wrapper">
@@ -133,6 +167,7 @@ const errorMessage = document.getElementById("error-message");
 const yearSelect = document.getElementById("year-select");
 const DRIVER_DATA = {{ driver_data|tojson }};
 
+let expandIframeAfterLoad = false;
 const MAX_RACES = 3;
 
 function createRaceCard() {
@@ -163,7 +198,7 @@ function createRaceCard() {
                 <div class="field-error dnf-error"></div>
             </div>
             <div class="race-field">
-                <label>Time Delay (sec)</label>
+                <label>Time Penalty (sec)</label>
                 <input type="number" class="time-delay-input text-entry" placeholder="0 - 5" min="0" max="5" step="1">
                 <div class="field-error time-delay-error"></div>
             </div>
@@ -406,7 +441,7 @@ submitBtn.addEventListener("click", () => {
         }
 
         if (timeDelayValue === "") {
-            setFieldError(card, "time-delay", "Enter a time delay.");
+            setFieldError(card, "time-delay", "Enter a time penalty.");
             error = true;
             break;
         }
@@ -430,8 +465,32 @@ submitBtn.addEventListener("click", () => {
         return;
     }
 
+    // Show loading overlay and iframe container
+    document.getElementById("loading-overlay").style.display = "flex";
+    document.getElementById("iframe-container").style.display = "block";
+    iframe.style.height = '600px';
+    iframe.style.visibility = 'hidden';
+    expandIframeAfterLoad = true;
+
+    // Scroll to the iframe container
+    setTimeout(() => {
+        document.getElementById("iframe-container").scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }, 100);
+
     document.getElementById("config-input").value = JSON.stringify({year: yearSelect.value, configs: results});
     form.submit();
+});
+
+iframe.addEventListener("load", () => {
+    document.getElementById("loading-overlay").style.display = "none";
+    if (expandIframeAfterLoad) {
+        iframe.style.height = '1200px';
+        iframe.style.visibility = 'visible';
+        expandIframeAfterLoad = false;
+    }
 });
 
 // Reset button
@@ -458,6 +517,12 @@ resetBtn.addEventListener("click", () => {
     });
     // Clear the form fields
     document.getElementById("config-input").value = "";
+    // Hide loading overlay and iframe container
+    document.getElementById("loading-overlay").style.display = "none";
+    document.getElementById("iframe-container").style.display = "none";
+    iframe.style.height = '600px';
+    iframe.style.visibility = 'hidden';
+    expandIframeAfterLoad = false;
     // Reload iframe to default state
     iframe.src = "{{ url_for('visualize_simulation') }}";
 });
