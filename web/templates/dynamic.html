@@ -47,7 +47,7 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  border-radius: 7px;
+  border-radius: 15px;
 }
 
 .loading-content {
@@ -63,14 +63,15 @@
 }
 
 .loading-text {
-  color: var(--text);
+  color: white;
   font-family: var(--body-font-family);
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 500;
 }
 
 .iframe-container {
   position: relative;
+  margin-top: 2rem;
 }
 </style>
 </head>
@@ -487,7 +488,7 @@ submitBtn.addEventListener("click", () => {
 iframe.addEventListener("load", () => {
     document.getElementById("loading-overlay").style.display = "none";
     if (expandIframeAfterLoad) {
-        iframe.style.height = '1200px';
+        iframe.style.height = '1100px';
         iframe.style.visibility = 'visible';
         expandIframeAfterLoad = false;
     }

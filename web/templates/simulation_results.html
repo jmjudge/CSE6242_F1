@@ -13,6 +13,25 @@
 *, *::before, *::after {
   box-sizing: border-box;
 }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin: 1.5rem 0;
+}
+
+.stats-panel {
+  padding: 1rem 1.25rem;
+  background: var(--background-card-color, #111);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+}
+
+.stats-panel h4 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
 </style>
 </head>
 <body>
@@ -26,28 +45,34 @@
 
 {% if sim_results %}
 
-<h2>Simulation Results for {{ sim_results.year }}</h2>
+<h2 class="heading" style="color: var(--primary-btn-color); font-size: 32px;">Simulation Results for {{ sim_results.year }}</h2>
 
-<p><strong>CSI:</strong> {{ (sim_results.csi * 100) | round(2) }}%</p>
+<p><strong>CSI:</strong> {{ (sim_results.csi * 100) | round(2) }}%, <strong>Simulations:</strong> {{ sim_results.n_simulations }}</p>
 
-<h3>Win Probabilities</h3>
-<ul>
-    {% for driver, prob in sim_results.win_probabilities.items() %}
-        <li>{{ driver }} — {{ (prob * 100) | round(2) }}%</li>
-    {% endfor %}
-</ul>
+<div class="stats-grid">
+    <div class="stats-panel">
+      <h4>Win Probabilities</h4>
+      <ul>
+          {% for driver, prob in sim_results.win_probabilities.items() %}
+              <li>{{ driver }} — {{ (prob * 100) | round(2) }}%</li>
+          {% endfor %}
+      </ul>
+    </div>
 
-<h3>Champion Counts</h3>
-<ul>
-    {% for driver, count in sim_results.champion_counts.items() %}
-        <li>{{ driver }} — {{ count }}</li>
-    {% endfor %}
-</ul>
+    <div class="stats-panel">
+      <h4>Champion Counts</h4>
+      <ul>
+          {% for driver, count in sim_results.champion_counts.items() %}
+              <li>{{ driver }} — {{ count }}</li>
+          {% endfor %}
+      </ul>
+    </div>
+</div>
 
-<p><strong>Simulations:</strong> {{ sim_results.n_simulations }}</p>
+<!-- <p><strong>Simulations:</strong> {{ sim_results.n_simulations }}</p> -->
 
 <div class="chart-card">
-  <h2>Average Simulated Cumulative Points</h2>
+  <h2 style="margin-top: 3rem;">Average Simulated Cumulative Points</h2>
   <canvas id="avgCumulativePointsChart" width="800" height="360"></canvas>
 </div>
 
@@ -71,6 +96,7 @@
   }));
 
   const ctx = document.getElementById('avgCumulativePointsChart').getContext('2d');
+  Chart.defaults.font.family = "'Noto Sans', 'Onest', Helvetica, Arial, sans-serif, system";
   new Chart(ctx, {
     type: 'line',
     data: {
