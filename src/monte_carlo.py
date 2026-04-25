@@ -18,10 +18,10 @@ class MonteCarloSimulator:
         }
 
     def _build_race_labels(self, df_year):
-        if 'race_round' in df_year.columns:
-            order = df_year.drop_duplicates('raceId').set_index('raceId')['race_round']
-        elif 'round' in df_year.columns:
+        if 'round' in df_year.columns:
             order = df_year.drop_duplicates('raceId').set_index('raceId')['round']
+        elif 'race_round' in df_year.columns:
+            order = df_year.drop_duplicates('raceId').set_index('raceId')['race_round']
         else:
             order = pd.Series(
                 data=range(1, len(df_year['raceId'].unique()) + 1),
@@ -90,6 +90,7 @@ class MonteCarloSimulator:
       ##  df_year['scenario_time_delay'] = df_year.get('scenario_time_delay', np.nan)
 
         race_labels = self._build_race_labels(df_year)
+        race_order_map = {race_id: race_labels[race_id]['order'] for race_id in race_labels}
         cumulative_point_sums = defaultdict(float)
         cumulative_point_counts = defaultdict(int)
 
@@ -142,7 +143,9 @@ class MonteCarloSimulator:
             # POINTS
             sim_df["sim_points"] = sim_df["sim_position"].map(self.points_system).fillna(0)
 
-            sim_df = sim_df.sort_values(['raceId', 'sim_position'])
+            # Sort by the true seasonal order, not raceId order, before calculating cumulative points
+            sim_df['race_order'] = sim_df['raceId'].map(race_order_map)
+            sim_df = sim_df.sort_values(['race_order', 'sim_position'])
             sim_df['cumulative_points'] = sim_df.groupby('driverId')['sim_points'].cumsum()
 
             for _, row in sim_df[['raceId', 'driverId', 'cumulative_points']].iterrows():
