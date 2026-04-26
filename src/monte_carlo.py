@@ -69,7 +69,7 @@ class MonteCarloSimulator:
 
         return pd.concat([finishers, dnfs])
 
-    def simulate_season(self, year, n_simulations=100, df_override=None, configs=None):
+    def simulate_season(self, year, n_simulations=150, df_override=None, configs=None):
         """
         Monte Carlo season simulation
         """
