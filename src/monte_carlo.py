@@ -29,12 +29,23 @@ class MonteCarloSimulator:
             )
 
         labels = {}
+
         for race_id, race_order in order.items():
-            label = (
-                df_year.loc[df_year['raceId'] == race_id, 'raceName'].iloc[0]
-                if 'raceName' in df_year.columns else f"Race {int(race_order)}"
-            )
-            labels[race_id] = {"order": int(race_order), "label": str(label)}
+            race_rows = df_year[df_year['raceId'] == race_id]
+
+            label = None
+            if 'race_name' in race_rows.columns:
+                val = race_rows['race_name'].dropna()
+                if not val.empty:
+                    label = val.iloc[0]
+
+            if not label:
+                label = f"Race {int(race_order)}"
+
+            labels[race_id] = {
+                "order": int(race_order),
+                "label": str(label)
+            }
 
         return labels
 
