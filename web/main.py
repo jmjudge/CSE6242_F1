@@ -31,7 +31,7 @@ def historical_progression():
     )
 
 # for the static CSI visualization
-def compute_baseline_csi_by_year(n_simulations=100):
+def compute_baseline_csi_by_year(n_simulations=150):
     df = load_master_driver_race_df()
     simulator = MonteCarloSimulator(df)
 
@@ -193,7 +193,7 @@ def visualize_simulation():
             simulator = MonteCarloSimulator(df)
             sim_results = simulator.simulate_season(
                 year=year,
-                n_simulations=100,
+                n_simulations=150,
                 df_override=df_modified
 
                 
